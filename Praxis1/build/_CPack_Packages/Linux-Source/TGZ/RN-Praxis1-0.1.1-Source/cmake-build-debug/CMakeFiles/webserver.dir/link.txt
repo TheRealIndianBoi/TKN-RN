@@ -1,0 +1,1 @@
+/usr/bin/cc -g  -rdynamic CMakeFiles/webserver.dir/webserver.c.o  -o webserver 

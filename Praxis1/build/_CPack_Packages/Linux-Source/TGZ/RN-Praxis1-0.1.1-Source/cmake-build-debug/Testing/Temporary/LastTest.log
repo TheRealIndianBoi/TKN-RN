@@ -1,0 +1,227 @@
+Start testing: Nov 12 00:04 CET
+----------------------------------------------------------
+1/8 Testing: Execute
+1/8 Test: Execute
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/execute.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug
+"Execute" start time: Nov 12 00:04 CET
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Passed.
+"Execute" end time: Nov 12 00:04 CET
+"Execute" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/8 Testing: Listen
+2/8 Test: Listen
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/listen.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug
+"Listen" start time: Nov 12 00:04 CET
+Output:
+----------------------------------------------------------
+
+Executed Webserver.c ...
+Setting Connection with Port 4711 ...
+Successfully established Connection ...
+Binding Socket ...
+Waiting for Connections ...
+Incoming Connection from 127.0.0.1
+Server:
+Exiting with Success ...
+
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Passed.
+"Listen" end time: Nov 12 00:04 CET
+"Listen" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/8 Testing: Reply
+3/8 Test: Reply
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/reply.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug
+"Reply" start time: Nov 12 00:04 CET
+Output:
+----------------------------------------------------------
+
+Executed Webserver.c ...
+Setting Connection with Port 4711 ...
+Successfully established Connection ...
+Binding Socket ...
+Waiting for Connections ...
+Incoming Connection from 127.0.0.1
+Server:
+Recieved: Request
+Method: Request
+Exiting with Success ...
+
+<end of output>
+Test time =   0.30 sec
+----------------------------------------------------------
+Test Passed.
+"Reply" end time: Nov 12 00:04 CET
+"Reply" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/8 Testing: Packets
+4/8 Test: Packets
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/packets.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug
+"Packets" start time: Nov 12 00:04 CET
+Output:
+----------------------------------------------------------
+
+Executed Webserver.c ...
+Setting Connection with Port 4711 ...
+Successfully established Connection ...
+Binding Socket ...
+Waiting for Connections ...
+Incoming Connection from 127.0.0.1
+Server:
+Recieved: Request1
+Method: Request1
+Recieved: Request
+2
+Method: Request
+2
+Exiting with Success ...
+
+<end of output>
+Test time =   0.58 sec
+----------------------------------------------------------
+Test Passed.
+"Packets" end time: Nov 12 00:04 CET
+"Packets" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/8 Testing: HTTPReply
+5/8 Test: HTTPReply
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/httpreply.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug
+"HTTPReply" start time: Nov 12 00:04 CET
+Output:
+----------------------------------------------------------
+
+Executed Webserver.c ...
+Setting Connection with Port 4711 ...
+Successfully established Connection ...
+Binding Socket ...
+Waiting for Connections ...
+Incoming Connection from 127.0.0.1
+Server:
+Recieved: Request
+Method: Request
+Exiting with Success ...
+
+<end of output>
+Test time =   0.59 sec
+----------------------------------------------------------
+Test Passed.
+"HTTPReply" end time: Nov 12 00:04 CET
+"HTTPReply" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/8 Testing: HTTPReplies
+6/8 Test: HTTPReplies
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/httpreplies.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug
+"HTTPReplies" start time: Nov 12 00:04 CET
+Output:
+----------------------------------------------------------
+
+Executed Webserver.c ...
+Setting Connection with Port 4711 ...
+Successfully established Connection ...
+Binding Socket ...
+Waiting for Connections ...
+Incoming Connection from 127.0.0.1
+Server:
+Recieved: HEAD /index.html HTTP/1.1
+Host: localhost:4711
+Accept-Encoding: identity
+Method: HEAD 
+Exiting with Success ...
+
+Traceback (most recent call last):
+  File "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/httpreplies.py", line 56, in <module>
+    sys.exit(main())
+  File "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/httpreplies.py", line 45, in main
+    conn.request('GET', '/index.html')
+  File "/usr/lib/python3.8/http/client.py", line 1230, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+  File "/usr/lib/python3.8/http/client.py", line 1276, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+  File "/usr/lib/python3.8/http/client.py", line 1225, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "/usr/lib/python3.8/http/client.py", line 1004, in _send_output
+    self.send(msg)
+  File "/usr/lib/python3.8/http/client.py", line 944, in send
+    self.connect()
+  File "/usr/lib/python3.8/http/client.py", line 915, in connect
+    self.sock = self._create_connection(
+  File "/usr/lib/python3.8/socket.py", line 808, in create_connection
+    raise err
+  File "/usr/lib/python3.8/socket.py", line 796, in create_connection
+    sock.connect(sa)
+ConnectionRefusedError: [Errno 111] Connection refused
+<end of output>
+Test time =   0.39 sec
+----------------------------------------------------------
+Test Failed.
+"HTTPReplies" end time: Nov 12 00:04 CET
+"HTTPReplies" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/8 Testing: StaticContent
+7/8 Test: StaticContent
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/static_content.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug
+"StaticContent" start time: Nov 12 00:04 CET
+Output:
+----------------------------------------------------------
+
+Executed Webserver.c ...
+Setting Connection with Port 4711 ...
+Successfully established Connection ...
+Binding Socket ...
+Waiting for Connections ...
+Incoming Connection from 127.0.0.1
+Server:
+Recieved: GET /static/foo HTTP/1.1
+Host: localhost:4711
+Accept-Encoding: identity
+Method: GET 
+Exiting with Success ...
+
+<end of output>
+Test time =   0.33 sec
+----------------------------------------------------------
+Test Failed.
+"StaticContent" end time: Nov 12 00:04 CET
+"StaticContent" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/8 Testing: DynamicContent
+8/8 Test: DynamicContent
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/dynamic_content.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/cmake-build-debug
+"DynamicContent" start time: Nov 12 00:04 CET
+Output:
+----------------------------------------------------------
+  File "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/dynamic_content.py", line 70
+    conn.request('GET', path)
+    ^
+IndentationError: expected an indented block
+<end of output>
+Test time =   0.16 sec
+----------------------------------------------------------
+Test Failed.
+"DynamicContent" end time: Nov 12 00:04 CET
+"DynamicContent" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 12 00:04 CET

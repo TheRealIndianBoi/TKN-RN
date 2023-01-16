@@ -1,0 +1,6 @@
+/home/tkn/praxis2/cmake-build-tknprofile/CMakeFiles/client.dir
+/home/tkn/praxis2/cmake-build-tknprofile/CMakeFiles/peer.dir
+/home/tkn/praxis2/cmake-build-tknprofile/CMakeFiles/package.dir
+/home/tkn/praxis2/cmake-build-tknprofile/CMakeFiles/package_source.dir
+/home/tkn/praxis2/cmake-build-tknprofile/CMakeFiles/edit_cache.dir
+/home/tkn/praxis2/cmake-build-tknprofile/CMakeFiles/rebuild_cache.dir

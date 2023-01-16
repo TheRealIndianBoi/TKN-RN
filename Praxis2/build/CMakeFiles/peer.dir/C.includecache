@@ -1,0 +1,84 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/hash_table.h
+uthash.h
+../include/uthash.h
+
+../include/neighbour.h
+packet.h
+../include/packet.h
+netdb.h
+-
+
+../include/packet.h
+stdint.h
+-
+stdlib.h
+-
+
+../include/requests.h
+packet.h
+../include/packet.h
+server.h
+../include/server.h
+uthash.h
+../include/uthash.h
+
+../include/server.h
+stdbool.h
+-
+sys/socket.h
+-
+packet.h
+../include/packet.h
+util.h
+../include/util.h
+
+../include/uthash.h
+stddef.h
+-
+stdlib.h
+-
+string.h
+-
+stdint.h
+-
+stdint.h
+-
+stdint.h
+-
+
+../include/util.h
+stdint.h
+-
+stdlib.h
+-
+sys/socket.h
+-
+
+/mnt/c/Users/Navaljit Ghotra/Uni/praxis2/src/peer.c
+stdio.h
+-
+string.h
+-
+unistd.h
+-
+hash_table.h
+/mnt/c/Users/Navaljit Ghotra/Uni/praxis2/src/hash_table.h
+neighbour.h
+/mnt/c/Users/Navaljit Ghotra/Uni/praxis2/src/neighbour.h
+packet.h
+/mnt/c/Users/Navaljit Ghotra/Uni/praxis2/src/packet.h
+requests.h
+/mnt/c/Users/Navaljit Ghotra/Uni/praxis2/src/requests.h
+server.h
+/mnt/c/Users/Navaljit Ghotra/Uni/praxis2/src/server.h
+util.h
+/mnt/c/Users/Navaljit Ghotra/Uni/praxis2/src/util.h
+

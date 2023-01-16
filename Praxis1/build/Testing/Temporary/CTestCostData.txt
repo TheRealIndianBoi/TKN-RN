@@ -1,0 +1,13 @@
+Execute 1 0.0683208
+Listen 1 0.0816928
+Reply 1 0.286099
+Packets 0 0
+HTTPReply 1 0.584967
+HTTPReplies 0 0
+StaticContent 0 0
+DynamicContent 0 0
+---
+Packets
+HTTPReplies
+StaticContent
+DynamicContent

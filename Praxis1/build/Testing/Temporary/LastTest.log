@@ -1,0 +1,203 @@
+Start testing: Nov 21 16:09 CET
+----------------------------------------------------------
+1/8 Testing: Execute
+1/8 Test: Execute
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/execute.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build
+"Execute" start time: Nov 21 16:09 CET
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"Execute" end time: Nov 21 16:09 CET
+"Execute" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/8 Testing: Listen
+2/8 Test: Listen
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/listen.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build
+"Listen" start time: Nov 21 16:09 CET
+Output:
+----------------------------------------------------------
+
+Executed Webserver.c ...
+Setting Connection with Port 4711 ...
+Successfully established Connection ...
+Binding Socket ...
+Waiting for Connections ...
+Incoming Connection from 127.0.0.1
+Exiting with Success ...
+
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"Listen" end time: Nov 21 16:09 CET
+"Listen" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/8 Testing: Reply
+3/8 Test: Reply
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/reply.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build
+"Reply" start time: Nov 21 16:09 CET
+Output:
+----------------------------------------------------------
+
+Executed Webserver.c ...
+Setting Connection with Port 4711 ...
+Successfully established Connection ...
+Binding Socket ...
+Waiting for Connections ...
+Incoming Connection from 127.0.0.1
+Recieved here: Request
+
+**
+Exiting with Success ...
+
+<end of output>
+Test time =   0.29 sec
+----------------------------------------------------------
+Test Passed.
+"Reply" end time: Nov 21 16:09 CET
+"Reply" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/8 Testing: Packets
+4/8 Test: Packets
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/packets.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build
+"Packets" start time: Nov 21 16:09 CET
+Output:
+----------------------------------------------------------
+[b'HTTP/1.0 400 Bad Request', b'']
+<end of output>
+Test time =   1.59 sec
+----------------------------------------------------------
+Test Failed.
+"Packets" end time: Nov 21 16:09 CET
+"Packets" time elapsed: 00:00:01
+----------------------------------------------------------
+
+5/8 Testing: HTTPReply
+5/8 Test: HTTPReply
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/httpreply.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build
+"HTTPReply" start time: Nov 21 16:09 CET
+Output:
+----------------------------------------------------------
+b'HTTP/1.0 400 Bad Request\r\n\r\n'
+
+Executed Webserver.c ...
+Setting Connection with Port 4711 ...
+Successfully established Connection ...
+Binding Socket ...
+Waiting for Connections ...
+Incoming Connection from 127.0.0.1
+Recieved here: Request
+
+**
+Exiting with Success ...
+
+<end of output>
+Test time =   0.58 sec
+----------------------------------------------------------
+Test Passed.
+"HTTPReply" end time: Nov 21 16:09 CET
+"HTTPReply" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/8 Testing: HTTPReplies
+6/8 Test: HTTPReplies
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/httpreplies.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build
+"HTTPReplies" start time: Nov 21 16:09 CET
+Output:
+----------------------------------------------------------
+
+Executed Webserver.c ...
+Setting Connection with Port 4711 ...
+Successfully established Connection ...
+Binding Socket ...
+Waiting for Connections ...
+Incoming Connection from 127.0.0.1
+Recieved here: HEAD /index.html HTTP/1.1
+Host: localhost:4711
+Accept-Encoding: identity
+
+**
+Exiting with Success ...
+
+HEAD did not reply with '501'
+<end of output>
+Test time =   0.32 sec
+----------------------------------------------------------
+Test Failed.
+"HTTPReplies" end time: Nov 21 16:09 CET
+"HTTPReplies" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/8 Testing: StaticContent
+7/8 Test: StaticContent
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/static_content.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build
+"StaticContent" start time: Nov 21 16:09 CET
+Output:
+----------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/static_content.py", line 67, in <module>
+    sys.exit(main())
+  File "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/static_content.py", line 46, in main
+    payload = reply.read()
+  File "/usr/lib/python3.8/http/client.py", line 464, in read
+    s = self.fp.read()
+  File "/usr/lib/python3.8/socket.py", line 669, in readinto
+    return self._sock.recv_into(b)
+socket.timeout: timed out
+
+Executed Webserver.c ...
+Setting Connection with Port 4711 ...
+Successfully established Connection ...
+Binding Socket ...
+Waiting for Connections ...
+Incoming Connection from 127.0.0.1
+Recieved here: GET /static/foo HTTP/1.1
+Host: localhost:4711
+Accept-Encoding: identity
+
+**
+Exiting with Success ...
+
+<end of output>
+Test time =   2.38 sec
+----------------------------------------------------------
+Test Failed.
+"StaticContent" end time: Nov 21 16:09 CET
+"StaticContent" time elapsed: 00:00:02
+----------------------------------------------------------
+
+8/8 Testing: DynamicContent
+8/8 Test: DynamicContent
+Command: "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/dynamic_content.py" "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build/webserver"
+Directory: /mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/build
+"DynamicContent" start time: Nov 21 16:09 CET
+Output:
+----------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/dynamic_content.py", line 83, in <module>
+    sys.exit(main())
+  File "/mnt/c/Users/Navaljit Ghotra/Uni/TKN-RN/Praxis1/test/dynamic_content.py", line 40, in main
+    path = f'/dynamic/{random.randbytes(8).hex()}'
+AttributeError: module 'random' has no attribute 'randbytes'
+<end of output>
+Test time =   0.15 sec
+----------------------------------------------------------
+Test Failed.
+"DynamicContent" end time: Nov 21 16:09 CET
+"DynamicContent" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 21 16:09 CET

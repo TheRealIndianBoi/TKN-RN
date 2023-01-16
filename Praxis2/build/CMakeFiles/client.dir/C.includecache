@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/packet.h
+stdint.h
+-
+stdlib.h
+-
+
+../include/util.h
+stdint.h
+-
+stdlib.h
+-
+sys/socket.h
+-
+
+/mnt/c/Users/Navaljit Ghotra/Uni/praxis2/src/client.c
+packet.h
+/mnt/c/Users/Navaljit Ghotra/Uni/praxis2/src/packet.h
+util.h
+/mnt/c/Users/Navaljit Ghotra/Uni/praxis2/src/util.h
+netdb.h
+-
+stdbool.h
+-
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+sys/socket.h
+-
+unistd.h
+-
+

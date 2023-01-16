@@ -1,0 +1,1 @@
+/usr/bin/cc -g -rdynamic CMakeFiles/peer.dir/src/peer.o CMakeFiles/peer.dir/src/server.o CMakeFiles/peer.dir/src/packet.o CMakeFiles/peer.dir/src/util.o CMakeFiles/peer.dir/src/hash_table.o CMakeFiles/peer.dir/src/neighbour.o CMakeFiles/peer.dir/src/requests.o -o peer 
