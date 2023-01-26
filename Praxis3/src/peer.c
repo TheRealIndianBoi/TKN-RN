@@ -293,6 +293,16 @@ int handle_packet(server *srv, client *c, packet *p) {
     }
 }
 
+int count(char * string, char c){
+    int nr = 0;
+    for (int i = 0; i < (int) strlen(string); ++i) {
+        if(string[i] == c){
+            nr += 1;
+        }
+    }
+    return nr;
+}
+
 /**
  * @brief Main entry for a peer of the chord ring.
  *
@@ -308,17 +318,53 @@ int handle_packet(server *srv, client *c, packet *p) {
  */
 int main(int argc, char **argv) {
 
-    if (argc < 10) {
-        fprintf(stderr, "Not enough args! I need ID IP PORT ID_P IP_P PORT_P "
-                        "ID_S IP_S PORT_S\n");
+    /*if (argc < 10) {
+        fprintf(stderr, "Not enough args! I need ID IP PORT ID_P IP_P PORT_P " "ID_S IP_S PORT_S\n");
+    }*/
+
+    if(argc < 3 || argc > 6){
+        fprintf(stderr, "Amount of Arguments invalid! It should be ./peer IP PORT [ID] [Peer-IP Peer-PORT]. [ID] is not necessary.\n");
+        return EXIT_FAILURE;
+    }
+
+    int arg_count = 0;
+    int arg_count2 = 0;
+    for (int i = 0; i < argc; ++i) {
+        arg_count += count(argv[i], '[');
+        arg_count2 += count(argv[i], ']');
+    }
+    if((arg_count != arg_count2) || //Check Complete String
+      (argc == 3 && arg_count != 0) || //Check for "./peer IP Port
+      (argc == 4 && (arg_count != 1 || arg_count2 != 1 || count(argv[3], '[') != 1 || count(argv[3], ']') != 1)) ||//Check for "./peer IP PORT [ID]"
+      (argc == 5 && (arg_count != 1 || count(argv[3], '[') != 1 || count(argv[4], ']') != 1)) ||//Check for "./peer IP PORT [Peer-IP Peer_PORT]
+      (argc == 6 && (arg_count != 2 || count(argv[3], '[') != 1 || count(argv[3], ']') != 1 || count(argv[4], '[') != 1 || count(argv[5], ']') != 1))
+                                                                                                                //Check for "./peer IP PORT [ID] [Peer-IP Peer-PORT]
+    ){
+        fprintf(stderr, "Invalid Arguments! It should be ./peer IP PORT [ID] [Peer-IP Peer-PORT]. [ID] and [Peer-IP Peer-PORT] are not necessary.\n");
+        return EXIT_FAILURE;
     }
 
     // Read arguments for self
-    uint16_t idSelf = strtoul(argv[1], NULL, 10);
+    /*uint16_t idSelf = strtoul(argv[1], NULL, 10);
     char *hostSelf = argv[2];
-    char *portSelf = argv[3];
+    char *portSelf = argv[3];*/
 
-    // Read arguments for predecessor
+    // Read arguments for self
+
+    uint16_t idSelf = 0;
+    char *hostSelf = argv[1];
+    char *portSelf = argv[2];
+    if(argc == 6 || argc == 4){
+        char* id = calloc(strlen(argv[3]) - 2, sizeof(char));
+        strncpy(id, argv[3] + 1, strlen(argv[3]) - 2);
+        idSelf = strtoul(id, NULL, 10);
+        free(id);
+    }
+    printf("Self:\nHOST: %s, PORT: %s, ID: %d\n", hostSelf, portSelf, idSelf);
+
+
+
+    /*// Read arguments for predecessor
     uint16_t idPred = strtoul(argv[4], NULL, 10);
     char *hostPred = argv[5];
     char *portPred = argv[6];
@@ -327,14 +373,31 @@ int main(int argc, char **argv) {
     uint16_t idSucc = strtoul(argv[7], NULL, 10);
     char *hostSucc = argv[8];
     char *portSucc = argv[9];
+    */
 
     // Initialize all chord peers
-    self = peer_init(
-        idSelf, hostSelf,
-        portSelf); //  Not really necessary but convenient to store us as a peer
-    pred = peer_init(idPred, hostPred, portPred); //
-
-    succ = peer_init(idSucc, hostSucc, portSucc);
+    self = peer_init(idSelf, hostSelf,portSelf); //  Not really necessary but convenient to store us as a peer
+    //pred = peer_init(idPred, hostPred, portPred);
+    //succ = peer_init(idSucc, hostSucc, portSucc);
+    pred = NULL;
+    succ = NULL;
+    //Set Peer to a DHT if given
+    if(argc == 6 || argc == 5){
+        char * peer_ip = calloc(strlen(argv[argc - 2]) - 1, sizeof(char));
+        strncpy(peer_ip, argv[argc - 2] + 1, strlen(argv[argc - 2]) - 1);
+        char * peer_port = calloc(strlen(argv[argc - 1]) - 1, sizeof(char));
+        strncpy(peer_port, argv[argc - 1], strlen(argv[argc - 1]) - 1);
+        if(strlen(peer_ip) == 0 || strlen(peer_port) == 0){
+            fprintf(stderr, "Invalid Arguments! It should be ./peer IP PORT [ID] [Peer-IP Peer-PORT]. [ID] and [Peer-IP Peer-PORT] are not necessary.\n");
+            return EXIT_FAILURE;
+        }
+        printf("Peer:\nIP: %s, Port: %s\n",peer_ip, peer_port);
+        peer *dht_node = peer_init(0, peer_ip, peer_port);
+        //TODO: JOIN() DHT
+        free(peer_ip);
+        free(peer_port);
+        free(dht_node);
+    }
 
     // Initialize outer server for communication with clients
     server *srv = server_setup(portSelf);
@@ -344,7 +407,7 @@ int main(int argc, char **argv) {
     }
     // Initialize hash table
     ht = (htable **)malloc(sizeof(htable *));
-    // Initiale reuqest table
+    // Initiale request table
     rt = (rtable **)malloc(sizeof(rtable *));
     *ht = NULL;
     *rt = NULL;
