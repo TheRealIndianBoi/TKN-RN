@@ -362,26 +362,9 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Not enough args! I need ID IP PORT ID_P IP_P PORT_P " "ID_S IP_S PORT_S\n");
     }*/
 
-    if(argc < 3 || argc > 6){
-        fprintf(stderr, "Amount of Arguments invalid! It should be ./peer IP PORT [ID] [Peer-IP Peer-PORT]. [ID] is not necessary.\n");
-        return EXIT_FAILURE;
-    }
-
-    int arg_count = 0;
-    int arg_count2 = 0;
-    for (int i = 0; i < argc; ++i) {
-        arg_count += count(argv[i], '[');
-        arg_count2 += count(argv[i], ']');
-    }
-    if((arg_count != arg_count2) || //Check Complete String
-      (argc == 3 && arg_count != 0) || //Check for "./peer IP Port
-      (argc == 4 && (arg_count != 1 || arg_count2 != 1 || count(argv[3], '[') != 1 || count(argv[3], ']') != 1)) ||//Check for "./peer IP PORT [ID]"
-      (argc == 5 && (arg_count != 1 || count(argv[3], '[') != 1 || count(argv[4], ']') != 1)) ||//Check for "./peer IP PORT [Peer-IP Peer_PORT]
-      (argc == 6 && (arg_count != 2 || count(argv[3], '[') != 1 || count(argv[3], ']') != 1 || count(argv[4], '[') != 1 || count(argv[5], ']') != 1))
-                                                                                                                //Check for "./peer IP PORT [ID] [Peer-IP Peer-PORT]
-    ){
-        //fprintf(stderr, "Invalid Arguments! It should be ./peer IP PORT [ID] [Peer-IP Peer-PORT]. [ID] and [Peer-IP Peer-PORT] are not necessary.\n");
-        fprintf(stderr, "%s %s %s %s", argv[0], argv[1], argv[2], argv[3]);
+    if(argc < 3 || argc > 6) {
+        fprintf(stderr,
+                "Amount of Arguments invalid! It should be ./peer IP PORT [ID] [Peer-IP Peer-PORT]. [ID] is not necessary.\n");
         return EXIT_FAILURE;
     }
 
@@ -395,10 +378,18 @@ int main(int argc, char **argv) {
     uint16_t idSelf = 0;
     char *hostSelf = argv[1];
     char *portSelf = argv[2];
-    if(argc == 6 || argc == 4){
-        char* id = calloc(strlen(argv[3]) - 2, sizeof(char));
-        strncpy(id, argv[3] + 1, strlen(argv[3]) - 2);
+    if(argc == 4 || argc == 6){
+
+        char* id = calloc(strlen(argv[3]), sizeof(char));
+        strncpy(id, argv[3], strlen(argv[3]));
         idSelf = strtoul(id, NULL, 10);
+        char str[strlen(argv[3])];
+        sprintf(str, "%d", idSelf);
+        if(strlen(str) != strlen(argv[3])){
+            fprintf(stderr,
+                    "Invalid Arguments! It should be ./peer IP PORT [ID] [Peer-IP Peer-PORT]. [ID] is not necessary.\n");
+            return EXIT_FAILURE;
+        }
         free(id);
     }
     printf("Self:\nHOST: %s, PORT: %s, ID: %d\n", hostSelf, portSelf, idSelf);
@@ -423,11 +414,11 @@ int main(int argc, char **argv) {
     pred = NULL;
     succ = NULL;
     //Set Peer to a DHT if given
-    if(argc == 6 || argc == 5){
-        char * peer_ip = calloc(strlen(argv[argc - 2]) - 1, sizeof(char));
-        strncpy(peer_ip, argv[argc - 2] + 1, strlen(argv[argc - 2]) - 1);
+    if(argc == 5 || argc == 6){
+        char * peer_ip = calloc(strlen(argv[argc - 2]), sizeof(char));
+        strncpy(peer_ip, argv[argc - 2], strlen(argv[argc - 2]));
         char * peer_port = calloc(strlen(argv[argc - 1]) - 1, sizeof(char));
-        strncpy(peer_port, argv[argc - 1], strlen(argv[argc - 1]) - 1);
+        strncpy(peer_port, argv[argc - 1], strlen(argv[argc - 1]));
         if(strlen(peer_ip) == 0 || strlen(peer_port) == 0){
             fprintf(stderr, "Invalid Arguments! It should be ./peer IP PORT [ID] [Peer-IP Peer-PORT]. [ID] and [Peer-IP Peer-PORT] are not necessary.\n");
             return EXIT_FAILURE;
