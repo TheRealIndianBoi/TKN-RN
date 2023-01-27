@@ -229,6 +229,14 @@ int handle_packet_data(server *srv, client *c, packet *p) {
     }
 }
 
+int notify_dht(packet* result){ //Not Used
+    if(result == NULL){
+        return EXIT_FAILURE;
+    }
+    succ = peer_from_packet(result);
+    return EXIT_SUCCESS;
+}
+
 /**
  * @brief Handle a control packet from another peer.
  * Lookup vs. Proxy Reply
@@ -264,14 +272,20 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
             server_close_socket(srv, r->socket);
         }
         clear_requests(rt, p->hash_id);
-    } else {
+    } else if(p->flags & PKT_FLAG_NTFY) {
+        succ = peer_from_packet(p);
+    }else if(p->flags & PKT_FLAG_JOIN) {
+
+
+    }else if(p->flags & PKT_FLAG_STAB){
+    }
         /**
          * TODO:
          * Extend handled control messages.
          * For the first task, this means that join-, stabilize-, and notify-messages should be understood.
          * For the second task, finger- and f-ack-messages need to be used as well.
          **/
-    }
+
     return CB_REMOVE_CLIENT;
 }
 
@@ -301,6 +315,32 @@ int count(char * string, char c){
         }
     }
     return nr;
+}
+
+int join_dht(peer* node){
+    //TODO: JOIN()
+    packet *join_msg = packet_new();
+    join_msg->node_ip = peer_get_ip(self);
+    join_msg->node_port = self->port;
+    join_msg->node_id = self->node_id;
+    join_msg->flags |= PKT_FLAG_JOIN |PKT_FLAG_CTRL;
+    if(forward(node, join_msg) == -1){
+        return EXIT_FAILURE;
+    }
+
+    //Notify ist nicht hier!
+    size_t result_len = 0;
+    unsigned char* result = recvall(node->socket, &result_len);
+    if(result_len < 1){
+        printf("Received broken Package.\n");
+        return EXIT_FAILURE;
+    }
+    packet* res_pack = packet_decode(result, result_len);
+    if(notify_dht(res_pack)){
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+
 }
 
 /**
@@ -340,7 +380,8 @@ int main(int argc, char **argv) {
       (argc == 6 && (arg_count != 2 || count(argv[3], '[') != 1 || count(argv[3], ']') != 1 || count(argv[4], '[') != 1 || count(argv[5], ']') != 1))
                                                                                                                 //Check for "./peer IP PORT [ID] [Peer-IP Peer-PORT]
     ){
-        fprintf(stderr, "Invalid Arguments! It should be ./peer IP PORT [ID] [Peer-IP Peer-PORT]. [ID] and [Peer-IP Peer-PORT] are not necessary.\n");
+        //fprintf(stderr, "Invalid Arguments! It should be ./peer IP PORT [ID] [Peer-IP Peer-PORT]. [ID] and [Peer-IP Peer-PORT] are not necessary.\n");
+        fprintf(stderr, "%s %s %s %s", argv[0], argv[1], argv[2], argv[3]);
         return EXIT_FAILURE;
     }
 
@@ -393,10 +434,14 @@ int main(int argc, char **argv) {
         }
         printf("Peer:\nIP: %s, Port: %s\n",peer_ip, peer_port);
         peer *dht_node = peer_init(0, peer_ip, peer_port);
-        //TODO: JOIN() DHT
+        int result = join_dht(dht_node);
         free(peer_ip);
         free(peer_port);
         free(dht_node);
+        if(result){
+            printf("Unsuccessful Join!\n");
+            return EXIT_FAILURE;
+        }
     }
 
     // Initialize outer server for communication with clients
