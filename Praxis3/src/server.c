@@ -8,7 +8,6 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
 #include "packet.h"
 
 void server_close_socket(server *srv, int socket) {
@@ -18,6 +17,46 @@ void server_close_socket(server *srv, int socket) {
             break;
         }
     }
+}
+int forward_stab(peer* p, packet* pack){
+    if (peer_connect(p) != 0) {
+        fprintf(stderr, "Failed to connect to peer %s:%d\n", p->hostname,
+                p->port);
+        return -1;
+    }
+
+    size_t data_len;
+    unsigned char *raw = packet_serialize(pack, &data_len);
+    int status = sendall(p->socket, raw, data_len);
+    free(raw);
+    raw = NULL;
+
+    peer_disconnect(p);
+    return status;
+}
+
+int send_stabilize(server * srv){
+    if(srv->succ == NULL){
+        printf("No Successor!\n");
+    }else{
+        packet * msg = packet_new();
+        msg->node_id = srv->self->node_id;
+        msg->node_port = srv->self->port;
+        msg->node_ip = peer_get_ip(srv->self);
+        msg->flags |= PKT_FLAG_CTRL | PKT_FLAG_STAB;
+        if (forward_stab(srv->succ, msg) == -1){
+            free(msg);
+            return EXIT_FAILURE;
+        }
+        free(msg);
+        printf("Sent Stabilize-Message!\n");
+    }
+    return EXIT_SUCCESS;
+    /*if(srv->succ != NULL){
+        packet* stabilize = packet_new();
+        stabilize->node_id = succ->node_id;
+
+    }*/
 }
 
 void server_remove_client(server *srv, client *c) {
@@ -124,7 +163,6 @@ void server_run(server *srv) {
     listen(srv->socket, 10);
     srv->active = true;
     fprintf(stderr, "Starting server. Press any key to exit.\n");
-
     struct pollfd *fds = NULL;
     int i, ready;
     while (srv->active) {
@@ -144,7 +182,7 @@ void server_run(server *srv) {
             fds[i].events = POLLIN;
         }
 
-        ready = poll(fds, srv->n_clients + 2, 5000);
+        ready = poll(fds, srv->n_clients + 2, 2000);
         if (ready < 0) {
             perror("Poll:");
             break;
@@ -219,7 +257,11 @@ void server_run(server *srv) {
             }
 
         } else {
-            fprintf(stderr, "Nothing is happening...\n");
+            //fprintf(stderr, "Nothing is happening...\n");
+            printf("No pending Client. Starting Process: Stabilize: ");
+            if(send_stabilize(srv)){
+                printf("Stabilize Unsuccessful.\n");
+            }
         }
     }
     free(fds);

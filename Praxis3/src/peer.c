@@ -18,6 +18,9 @@ peer *self = NULL;
 peer *pred = NULL;
 peer *succ = NULL;
 
+
+
+
 /**
  * @brief Forward a packet to a peer.
  *
@@ -84,7 +87,7 @@ int proxy_request(server *srv, int csocket, packet *p, peer *n) {
  * @return int The callback status
  */
 int lookup_peer(uint16_t hash_id) {
-    // We could see whether or not we need to repeat the lookup
+    // We could see whether we need to repeat the lookup
 
     // build a new packet for the lookup
     packet *lkp = packet_new();
@@ -229,12 +232,32 @@ int handle_packet_data(server *srv, client *c, packet *p) {
     }
 }
 
-int notify_dht(packet* result){ //Not Used
-    if(result == NULL){
+int notify_dht(peer* client, server* srv){ //TODO:
+
+    packet *msg = packet_new();
+    msg->node_ip = peer_get_ip(self);
+    msg->node_port = self->port;
+    msg->node_id = self->node_id;
+    msg->flags |= PKT_FLAG_NTFY |PKT_FLAG_CTRL;
+    if(forward(client, msg) == -1){
+        fprintf(stderr,"Notify couldn't be send to Port: %d with ID: %d!\n", client->port, client->node_id);
         return EXIT_FAILURE;
     }
-    succ = peer_from_packet(result);
+    packet_free(msg);
+    pred = client;
+    if(succ == NULL){
+        succ = client;
+        srv->succ = succ;
+        printf("New Predecessor & Successor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id);
+    }else{
+        printf("New Predecessor:\n IP: %s, Port: %d, ID: %d\n\nNew Successor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id,
+                                                                                                                    succ->hostname, succ->port, succ->node_id);
+    }
     return EXIT_SUCCESS;
+}
+
+int compare_peer(peer* c1, peer* c2){
+    return c1->node_id == c2->node_id && c1->port == c2->port && peer_get_ip(c1) == peer_get_ip(c2);
 }
 
 /**
@@ -273,11 +296,49 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
         }
         clear_requests(rt, p->hash_id);
     } else if(p->flags & PKT_FLAG_NTFY) {
+        /*NOTIFY_STAB
+         * peer* packet_peer = peer_from_packet(p);
+        packet_peer->node_id = p->node_id;
+        if(compare_peer())*/
         succ = peer_from_packet(p);
+        srv->succ = succ;
+        printf("New Successor:\n IP: %s, Port: %d, ID: %d\n", succ->hostname, succ->port, succ->node_id);
     }else if(p->flags & PKT_FLAG_JOIN) {
+        peer *n = peer_from_packet(p);
+        n->node_id = p->node_id;
+        if((pred == NULL)
+        ||  (n->node_id < self->node_id && ((pred->node_id < n->node_id) || (pred->node_id > self->node_id)))
+        ||  (n->node_id > self->node_id && (self->node_id < pred->node_id && pred->node_id < n->node_id))
+        ){
+            notify_dht(n, srv);
+        }else{
+            forward(succ, p);
+        }
 
 
     }else if(p->flags & PKT_FLAG_STAB){
+        peer *n = peer_from_packet(p);
+        n->node_id = p->node_id;
+        if(pred == NULL){
+            pred = n;
+            printf("New Predecessor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id);
+        }else{
+            if(!compare_peer(n, pred)){
+                printf("Got STABILIZE: Comparing: Predecessor: Port: %hu, ID: %hu\n From Packet: Port: %hu, ID:%hu\n", pred->port, pred->node_id, n->port, n->node_id);
+                //Notify
+                packet *change = packet_new();
+                change->node_port = pred->port;
+                change->node_id = pred->node_id;
+                change->node_ip = peer_get_ip(pred);
+                change->flags |= PKT_FLAG_CTRL | PKT_FLAG_NTFY;
+                if(forward(n, change) == -1){
+                    fprintf(stderr,"Notify couldn't be send!\n");
+                    return EXIT_FAILURE;
+                }
+                packet_free(change);
+            }
+            free(n);
+        }
     }
         /**
          * TODO:
@@ -317,26 +378,13 @@ int count(char * string, char c){
     return nr;
 }
 
-int join_dht(peer* node){
-    //TODO: JOIN()
+int join_dht(peer* node){ //Works
     packet *join_msg = packet_new();
     join_msg->node_ip = peer_get_ip(self);
     join_msg->node_port = self->port;
     join_msg->node_id = self->node_id;
     join_msg->flags |= PKT_FLAG_JOIN |PKT_FLAG_CTRL;
     if(forward(node, join_msg) == -1){
-        return EXIT_FAILURE;
-    }
-
-    //Notify ist nicht hier!
-    size_t result_len = 0;
-    unsigned char* result = recvall(node->socket, &result_len);
-    if(result_len < 1){
-        printf("Received broken Package.\n");
-        return EXIT_FAILURE;
-    }
-    packet* res_pack = packet_decode(result, result_len);
-    if(notify_dht(res_pack)){
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
@@ -348,9 +396,9 @@ int join_dht(peer* node){
  *
  * TODO:
  * Modify usage of peer. Accept:
- * 1. Own IP and port;
- * 2. Own ID (optional, zero if not passed);
- * 3. IP and port of Node in existing DHT. This is optional: If not passed, establish new DHT, otherwise join existing.
+ * 1. Own IP and port; [Check]
+ * 2. Own ID (optional, zero if not passed); [Check]
+ * 3. IP and port of Node in existing DHT. This is optional: If not passed, establish new DHT, otherwise join existing.[Check]
  *
  * @param argc The number of arguments
  * @param argv The arguments
@@ -423,8 +471,10 @@ int main(int argc, char **argv) {
             fprintf(stderr, "Invalid Arguments! It should be ./peer IP PORT [ID] [Peer-IP Peer-PORT]. [ID] and [Peer-IP Peer-PORT] are not necessary.\n");
             return EXIT_FAILURE;
         }
-        printf("Peer:\nIP: %s, Port: %s\n",peer_ip, peer_port);
+        //Fehler
+
         peer *dht_node = peer_init(0, peer_ip, peer_port);
+        printf("Peer:\nIP: %s, Port: %hu\n",dht_node->hostname, dht_node->port);
         int result = join_dht(dht_node);
         free(peer_ip);
         free(peer_port);
@@ -447,8 +497,9 @@ int main(int argc, char **argv) {
     rt = (rtable **)malloc(sizeof(rtable *));
     *ht = NULL;
     *rt = NULL;
-
+    srv->succ = succ;
+    srv->self = self;
     srv->packet_cb = handle_packet;
-    server_run(srv);
+    server_run(srv); //added succ
     close(srv->socket);
 }

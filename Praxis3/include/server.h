@@ -2,9 +2,9 @@
 
 #include <stdbool.h>
 #include <sys/socket.h>
-
 #include "packet.h"
 #include "util.h"
+#include "neighbour.h"
 
 #define CB_REMOVE_CLIENT (-1)
 #define CB_OK 0
@@ -24,6 +24,8 @@ typedef struct _client {
 
 typedef struct _server {
     int socket;
+    peer* succ;
+    peer* self;
     int n_clients;
     bool active;
     struct _client *clients;
