@@ -46,6 +46,15 @@ int forward(peer *p, packet *pack) {
     return status;
 }
 
+int forward_test(peer *p, packet *pack){
+    size_t data_len;
+    unsigned char *raw = packet_serialize(pack, &data_len);
+    int status = sendall(p->socket, raw, data_len);
+    free(raw);
+    raw = NULL;
+    return status;
+}
+
 /**
  * @brief Forward a request to the successor.
  *
@@ -259,6 +268,11 @@ int notify_dht(peer* client, server* srv){ //TODO:
 int compare_peer(peer* c1, peer* c2){
     return c1->node_id == c2->node_id && c1->port == c2->port && peer_get_ip(c1) == peer_get_ip(c2);
 }
+void got_packet(packet* p){
+
+    fprintf(stderr, "Handling control packet...\n");
+    print_packet_hdr(p);
+}
 
 /**
  * @brief Handle a control packet from another peer.
@@ -271,9 +285,9 @@ int compare_peer(peer* c1, peer* c2){
  */
 int handle_packet_ctrl(server *srv, client *c, packet *p) {
 
-    fprintf(stderr, "Handling control packet...\n");
 
     if (p->flags & PKT_FLAG_LKUP) {
+        print_packet_hdr(p);
         // we received a lookup request
         if (peer_is_responsible(pred->node_id, self->node_id, p->hash_id)) {
             // Our business
@@ -287,6 +301,7 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
             forward(succ, p);
         }
     } else if (p->flags & PKT_FLAG_RPLY) {
+        print_packet_hdr(p);
         // Look for open requests and proxy them
         peer *n = peer_from_packet(p);
         for (request *r = get_requests(rt, p->hash_id); r != NULL;
@@ -296,14 +311,13 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
         }
         clear_requests(rt, p->hash_id);
     } else if(p->flags & PKT_FLAG_NTFY) {
-        /*NOTIFY_STAB
-         * peer* packet_peer = peer_from_packet(p);
-        packet_peer->node_id = p->node_id;
-        if(compare_peer())*/
+        print_packet_hdr(p);
         succ = peer_from_packet(p);
+        succ->node_id = p->node_id;
         srv->succ = succ;
         printf("New Successor:\n IP: %s, Port: %d, ID: %d\n", succ->hostname, succ->port, succ->node_id);
     }else if(p->flags & PKT_FLAG_JOIN) {
+        print_packet_hdr(p);
         peer *n = peer_from_packet(p);
         n->node_id = p->node_id;
         if((pred == NULL)
@@ -314,16 +328,16 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
         }else{
             forward(succ, p);
         }
-
-
     }else if(p->flags & PKT_FLAG_STAB){
         peer *n = peer_from_packet(p);
         n->node_id = p->node_id;
         if(pred == NULL){
+            print_packet_hdr(p);
             pred = n;
             printf("New Predecessor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id);
         }else{
             if(!compare_peer(n, pred)){
+                print_packet_hdr(p);
                 printf("Got STABILIZE: Comparing: Predecessor: Port: %hu, ID: %hu\n From Packet: Port: %hu, ID:%hu\n", pred->port, pred->node_id, n->port, n->node_id);
                 //Notify
                 packet *change = packet_new();
@@ -384,6 +398,7 @@ int join_dht(peer* node){ //Works
     join_msg->node_port = self->port;
     join_msg->node_id = self->node_id;
     join_msg->flags |= PKT_FLAG_JOIN |PKT_FLAG_CTRL;
+    //peer_connect(node);
     if(forward(node, join_msg) == -1){
         return EXIT_FAILURE;
     }

@@ -50,12 +50,13 @@ typedef struct _packet {
 packet *packet_new();
 
 packet *packet_dup(const packet *p);
+void print_packet_hdr(packet *p);
 
 void packet_free(packet *p);
 
 unsigned char *packet_serialize(const packet *p, size_t *buf_len);
 
-packet *packet_decode_hdr(const unsigned char *buffer, size_t buf_len);
+packet *packet_decode_hdr(const unsigned char *buffer, size_t buf_len, int show);
 packet *packet_decode_body(packet *p, const unsigned char *buffer,
                            size_t buf_len);
 packet *packet_decode(const unsigned char *buffer, size_t buf_len);

@@ -100,7 +100,7 @@ void client_decode_hdr(client *c) {
     c->state = HDR_RECVD;
     unsigned char hdr[PKT_HEADER_LEN];
     rb_read(c->header_buf, hdr, PKT_HEADER_LEN);
-    c->pack = packet_decode_hdr(hdr, PKT_HEADER_LEN);
+    c->pack = packet_decode_hdr(hdr, PKT_HEADER_LEN, 0);
 
     c->pkt_buf = rb_new(packet_body_size(c->pack));
 }
@@ -160,12 +160,15 @@ void server_run(server *srv) {
      * TODO:
      * Add periodic dissemination of stabilize messages.
      */
+    int timer = 0;
     listen(srv->socket, 10);
     srv->active = true;
     fprintf(stderr, "Starting server. Press any key to exit.\n");
     struct pollfd *fds = NULL;
     int i, ready;
     while (srv->active) {
+        timer += 1;
+
         fds = (struct pollfd *)realloc(fds, (srv->n_clients + 2) *
                                                 sizeof(struct pollfd));
         memset(fds, 0, (srv->n_clients + 2) * sizeof(struct pollfd));
@@ -181,8 +184,13 @@ void server_run(server *srv) {
             fds[i].fd = c->socket;
             fds[i].events = POLLIN;
         }
+        if(timer < 11){
+            ready = poll(fds, srv->n_clients + 2, 1000);
+        }else{
+            ready = 0;
+            timer = 0;
+        }
 
-        ready = poll(fds, srv->n_clients + 2, 2000);
         if (ready < 0) {
             perror("Poll:");
             break;

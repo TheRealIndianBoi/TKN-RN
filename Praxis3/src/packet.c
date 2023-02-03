@@ -104,7 +104,7 @@ unsigned char *packet_serialize(const packet *p, size_t *buf_len) {
 
 packet *packet_decode(const unsigned char *buffer, size_t buf_len) {
 
-    packet *p = packet_decode_hdr(buffer, buf_len);
+    packet *p = packet_decode_hdr(buffer, buf_len, 1);
     if (p == NULL) {
         return NULL;
     }
@@ -113,8 +113,27 @@ packet *packet_decode(const unsigned char *buffer, size_t buf_len) {
 
     return p;
 }
+void print_packet_hdr(packet *p){
 
-packet *packet_decode_hdr(const unsigned char *buffer, size_t buf_len) {
+    if(p->flags & PKT_FLAG_CTRL){
+        fprintf(stderr, "Decoded control packet header: \n");
+        fprintf(stderr, "\tJOIN: %d\n", (p->flags >> PKT_FLAG_JOIN_POS) & 1);
+        fprintf(stderr, "\tNOTIFY: %d\n", (p->flags >> PKT_FLAG_NTFY_POS) & 1);
+        fprintf(stderr, "\tSTABILIZE: %d\n",
+                (p->flags >> PKT_FLAG_STAB_POS) & 1);
+        fprintf(stderr, "\tLOOKUP: %d\n", (p->flags >> PKT_FLAG_LKUP_POS) & 1);
+        fprintf(stderr, "\tREPLY: %d\n", (p->flags >> PKT_FLAG_RPLY_POS) & 1);
+    }else{
+    fprintf(stderr, "Decoded packet header: \n");
+    fprintf(stderr, "\tACK: %d\n", (p->flags >> PKT_FLAG_ACK_POS) & 1);
+    fprintf(stderr, "\tGET: %d\n", (p->flags >> PKT_FLAG_GET_POS) & 1);
+    fprintf(stderr, "\tSET: %d\n", (p->flags >> PKT_FLAG_SET_POS) & 1);
+    fprintf(stderr, "\tDEL: %d\n", (p->flags >> PKT_FLAG_DEL_POS) & 1);
+    fprintf(stderr, "\tKey Length: %d Bytes\n", p->key_len);
+    fprintf(stderr, "\tValue Length: %d Bytes\n", p->value_len);}
+}
+
+packet *packet_decode_hdr(const unsigned char *buffer, size_t buf_len, int show) {
     if (buf_len < PKT_HEADER_LEN) {
         fprintf(stderr, "Buffer to short (%zu bytes) to decode packet!\n",
                 buf_len);
@@ -129,22 +148,13 @@ packet *packet_decode_hdr(const unsigned char *buffer, size_t buf_len) {
 
         p->value_len = (buffer[3] << 24u) | (buffer[4] << 16u) |
                        (buffer[5] << 8u) | (buffer[6] << 0u);
-
-        fprintf(stderr, "Decoded packet header: \n");
-        fprintf(stderr, "\tACK: %d\n", (p->flags >> PKT_FLAG_ACK_POS) & 1);
-        fprintf(stderr, "\tGET: %d\n", (p->flags >> PKT_FLAG_GET_POS) & 1);
-        fprintf(stderr, "\tSET: %d\n", (p->flags >> PKT_FLAG_SET_POS) & 1);
-        fprintf(stderr, "\tDEL: %d\n", (p->flags >> PKT_FLAG_DEL_POS) & 1);
-        fprintf(stderr, "\tKey Length: %d Bytes\n", p->key_len);
-        fprintf(stderr, "\tValue Length: %d Bytes\n", p->value_len);
+        if(show == 1){
+            print_packet_hdr(p);
+        }
     } else {
-        fprintf(stderr, "Decoded control packet header: \n");
-        fprintf(stderr, "\tJOIN: %d\n", (p->flags >> PKT_FLAG_JOIN_POS) & 1);
-        fprintf(stderr, "\tNOTIFY: %d\n", (p->flags >> PKT_FLAG_NTFY_POS) & 1);
-        fprintf(stderr, "\tSTABILIZE: %d\n",
-                (p->flags >> PKT_FLAG_STAB_POS) & 1);
-        fprintf(stderr, "\tLOOKUP: %d\n", (p->flags >> PKT_FLAG_LKUP_POS) & 1);
-        fprintf(stderr, "\tREPLY: %d\n", (p->flags >> PKT_FLAG_RPLY_POS) & 1);
+        if(show == 1){
+            print_packet_hdr(p);
+        }
 
         p->hash_id = (buffer[1] << 8u) | (buffer[2] << 0u);
         p->node_id = (buffer[3] << 8u) | (buffer[4] << 0u);
