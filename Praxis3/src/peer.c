@@ -8,17 +8,23 @@
 #include "requests.h"
 #include "server.h"
 #include "util.h"
+#include "math.h"
 
 // actual underlying hash table
 htable **ht = NULL;
 rtable **rt = NULL;
+htable  **ft = NULL;
 
 // chord peers
 peer *self = NULL;
 peer *pred = NULL;
 peer *succ = NULL;
 
-
+typedef struct finger_table{
+    uint16_t hash;
+    peer * fpeer;
+    struct finger_table* next;
+}ftable;
 
 
 /**
@@ -43,15 +49,6 @@ int forward(peer *p, packet *pack) {
     raw = NULL;
 
     peer_disconnect(p);
-    return status;
-}
-
-int forward_test(peer *p, packet *pack){
-    size_t data_len;
-    unsigned char *raw = packet_serialize(pack, &data_len);
-    int status = sendall(p->socket, raw, data_len);
-    free(raw);
-    raw = NULL;
     return status;
 }
 
@@ -112,7 +109,7 @@ int lookup_peer(uint16_t hash_id) {
 }
 
 /**
- * @brief Handle a client request we are resonspible for.
+ * @brief Handle a client request we are responsible for.
  *
  * @param c The client
  * @param p The packet
@@ -287,7 +284,7 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
 
 
     if (p->flags & PKT_FLAG_LKUP) {
-        print_packet_hdr(p);
+        got_packet(p);
         // we received a lookup request
         if (peer_is_responsible(pred->node_id, self->node_id, p->hash_id)) {
             // Our business
@@ -301,7 +298,7 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
             forward(succ, p);
         }
     } else if (p->flags & PKT_FLAG_RPLY) {
-        print_packet_hdr(p);
+        got_packet(p);
         // Look for open requests and proxy them
         peer *n = peer_from_packet(p);
         for (request *r = get_requests(rt, p->hash_id); r != NULL;
@@ -311,13 +308,13 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
         }
         clear_requests(rt, p->hash_id);
     } else if(p->flags & PKT_FLAG_NTFY) {
-        print_packet_hdr(p);
+        got_packet(p);
         succ = peer_from_packet(p);
         succ->node_id = p->node_id;
         srv->succ = succ;
         printf("New Successor:\n IP: %s, Port: %d, ID: %d\n", succ->hostname, succ->port, succ->node_id);
     }else if(p->flags & PKT_FLAG_JOIN) {
-        print_packet_hdr(p);
+        got_packet(p);
         peer *n = peer_from_packet(p);
         n->node_id = p->node_id;
         if((pred == NULL)
@@ -332,12 +329,12 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
         peer *n = peer_from_packet(p);
         n->node_id = p->node_id;
         if(pred == NULL){
-            print_packet_hdr(p);
+            got_packet(p);
             pred = n;
             printf("New Predecessor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id);
         }else{
             if(!compare_peer(n, pred)){
-                print_packet_hdr(p);
+                got_packet(p);
                 printf("Got STABILIZE: Comparing: Predecessor: Port: %hu, ID: %hu\n From Packet: Port: %hu, ID:%hu\n", pred->port, pred->node_id, n->port, n->node_id);
                 //Notify
                 packet *change = packet_new();
@@ -351,8 +348,17 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                 }
                 packet_free(change);
             }
-            free(n);
+            peer_free(n);
         }
+    }else if(p->flags & PKT_FLAG_FNGR){
+        got_packet(p);
+        int potenz = 0;
+        uint16_t hash = self->node_id + (uint16_t ) pow(2, potenz);
+
+
+
+    }else if(p->flags & PKT_FLAG_FACK){
+
     }
         /**
          * TODO:
@@ -510,8 +516,10 @@ int main(int argc, char **argv) {
     ht = (htable **)malloc(sizeof(htable *));
     // Initiale request table
     rt = (rtable **)malloc(sizeof(rtable *));
+    ft = (htable **)malloc(sizeof(htable * ));
     *ht = NULL;
     *rt = NULL;
+    *ft = NULL;
     srv->succ = succ;
     srv->self = self;
     srv->packet_cb = handle_packet;
