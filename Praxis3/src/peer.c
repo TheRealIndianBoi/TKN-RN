@@ -8,7 +8,6 @@
 #include "requests.h"
 #include "server.h"
 #include "util.h"
-#include "math.h"
 
 // actual underlying hash table
 htable **ht = NULL;
@@ -353,7 +352,6 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
     }else if(p->flags & PKT_FLAG_FNGR){
         got_packet(p);
         int potenz = 0;
-        uint16_t hash = self->node_id + (uint16_t ) pow(2, potenz);
 
 
 
