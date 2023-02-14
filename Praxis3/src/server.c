@@ -30,7 +30,6 @@ int forward_stab(peer* p, packet* pack){
     int status = sendall(p->socket, raw, data_len);
     free(raw);
     raw = NULL;
-
     peer_disconnect(p);
     return status;
 }
@@ -43,9 +42,11 @@ int send_stabilize(server * srv){
         msg->node_id = srv->self->node_id;
         msg->node_port = srv->self->port;
         msg->node_ip = peer_get_ip(srv->self);
+        msg->hash_id = 1;
         msg->flags |= PKT_FLAG_CTRL | PKT_FLAG_STAB;
         if (forward_stab(srv->succ, msg) == -1){
             free(msg);
+            printf("Error: Forward_Stab.\n");
             return EXIT_FAILURE;
         }
         free(msg);
@@ -167,8 +168,13 @@ void server_run(server *srv) {
     struct pollfd *fds = NULL;
     int i, ready;
     while (srv->active) {
-        timer += 1;
-
+        /*if(timer == 2000){
+            printf("Starting Process: Stabilize: ");
+            if(send_stabilize(srv)){
+                printf("Stabilize Unsuccessful.\n");
+            }
+        }
+        timer += 1;*/
         fds = (struct pollfd *)realloc(fds, (srv->n_clients + 2) *
                                                 sizeof(struct pollfd));
         memset(fds, 0, (srv->n_clients + 2) * sizeof(struct pollfd));

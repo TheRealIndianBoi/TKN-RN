@@ -173,28 +173,28 @@ class JoinAndFTTestCase(TKNTestCase):
         anchor_thread, anchor = self.start_peer(1400, GeneralPktHandler)
         anchor.send_response = True
         notify = ControlPacket('NOTIFY', 0, succ_id, succ_ip, succ_port)
-        anchor.resp_q.put((notify, self.container_peer_ip, node_port))
+        anchor.resp_q.put((notify, self.container_peer_ip, node_port))   #succ->succ = node
 
-        handler = self.start_student_peer(node_port, node_id, self.container_mock_ip, 1400)
+        handler = self.start_student_peer(node_port, node_id, self.container_mock_ip, 1400) #Join Node in Succ
 
-        join_pkt: ControlPacket = anchor.await_packet(ControlPacket, 2.0)
+        join_pkt: ControlPacket = anchor.await_packet(ControlPacket, 2.0) # Succ gets Join and replies with NTFY -> node->succ = succ & succ->pred = node & succ->succ = node
         if join_pkt is None:
             status, out, err = handler.collect()
             self.fail(f"Did not receive a JOIN msg within timeout! Stdout: {out}, Stderr:{err}")
 
-        stabilize = ControlPacket('STABILIZE', 0, pre_id, pre_ip, pre_port)
-        pre = self.start_client(stabilize, port=node_port)
-
+        stabilize = ControlPacket('STABILIZE', 0, pre_id, pre_ip, pre_port) # Node gets STAB from pre: NTFY
+        pre = self.start_client(stabilize, port=node_port) #NTFY has been sent to peer, but it's a client
+        #pre_thread, pre = self.start_peer(1401, GeneralPktHandler)
+        #pre.send_response = True
+        #pre.resp_q.put((stabilize, self.container_peer_ip, node_port))
         try:
             notify2 = pre.await_packet(2.5)
             if notify2 is None:
                 status, out, err = handler.collect()
                 self.fail(
                     f"Did not receive a NOTIFY response for stabilize msg within timeout! Stdout: {out}, Stderr:{err}")
-
         except AssertionError:
-            raise AssertionError(
-                'Peer closed connection after STABILIZE! Either it crashed or it tries to send NOTIFY in a separate connection! In the second case: This is stupid but might still be valid.')
+            raise AssertionError(f'Peer closed connection after STABILIZE! Either it crashed or it tries to send NOTIFY in a separate connection! In the second case: This is stupid but might still be valid. {out}\n{err}')
 
         self.assertEqual(notify2.method, 'NOTIFY')
 
@@ -277,15 +277,17 @@ class JoinAndFTTestCase(TKNTestCase):
         mock_port = 1400
         mock_ip = ipaddress.IPv4Address(self.container_mock_ip)
 
-        handler1 = self.start_student_peer(node1_port, node1_id)
-        handler2 = self.start_student_peer(node2_port, node2_id, node1_ip, node1_port)
-
-        _, mock = self.start_peer(mock_port, GeneralPktHandler)
+        handler1 = self.start_student_peer(node1_port, node1_id) #./build/peer localhost 2000 100
+        handler2 = self.start_student_peer(node2_port, node2_id, node1_ip, node1_port)  #./build/peer localhost 2001 200 localhost 2000
+            #-->2000 - 2001
+            #--> 100 -  200
+        _, mock = self.start_peer(mock_port, GeneralPktHandler) #./build/peer localhost 1400 150
         mock.send_response = True
         mock.resp_q.put(NullPacket())  # Do not respond to notify
 
         join = ControlPacket('JOIN', 0, mock_id, mock_ip, mock_port)
-        c1 = self.start_client(join, port=node1_port)
+        c1 = self.start_client(join, port=node1_port) #--> 2000<- 1400 || 2001 <- 1400
+                                                      # 100 - 200 | 150 - 200 | 200 - 150
 
         notify: ControlPacket = mock.await_packet(ControlPacket, 2.5)
         if not notify:
@@ -297,12 +299,12 @@ class JoinAndFTTestCase(TKNTestCase):
         self.assertEqual(notify.method, 'NOTIFY')
         self.assertEqual(notify.node_id, node2_id)
 
-        stabilize: ControlPacket = mock.await_packet(ControlPacket, 5.0)
+        stabilize: ControlPacket = mock.await_packet(ControlPacket, 5.0) #
         if not stabilize:
             _, out1, err1 = handler1.collect()
             _, out2, err2 = handler2.collect()
             self.fail(
-                f"Peer did not send STABILIZE within timeout! Stdout1: {out1}, Stderr1:{err1}, Stdout2: {out2}, Stderr2:{err2}")
+                f"Peer did not send STABILIZE within timeout!(1) Stdout1: {out1}, Stderr1:{err1}, Stdout2: {out2}, Stderr2:{err2}")
 
         mock.resp_q.put(ControlPacket('NOTIFY', 0, stabilize.node_id, stabilize.ip, stabilize.port))
 
@@ -316,7 +318,7 @@ class JoinAndFTTestCase(TKNTestCase):
                 _, out1, err1 = handler1.collect()
                 _, out2, err2 = handler2.collect()
                 self.fail(
-                    f"Peer did not send STABILIZE within timeout! Stdout1: {out1}, Stderr1:{err1}, Stdout2: {out2}, Stderr2:{err2}")
+                    f"Peer did not send STABILIZE within timeout!(2) Stdout1: {out1}, Stderr1:{err1}, Stdout2: {out2}, Stderr2:{err2}")
 
             self.assertEqual(stabilize.method, 'STABILIZE')
             mock.resp_q.put(ControlPacket('NOTIFY', 0, stabilize.node_id, stabilize.ip, stabilize.port))

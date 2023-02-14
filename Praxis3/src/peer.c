@@ -36,8 +36,8 @@ typedef struct finger_table{
 int forward(peer *p, packet *pack) {
     // check whether we can connect to the peer
     if (peer_connect(p) != 0) {
-        fprintf(stderr, "Failed to connect to peer %s:%d\n", p->hostname,
-                p->port);
+        /*fprintf(stderr, "Failed to connect to peer %s:%d\n", p->hostname,
+                p->port);*/
         return -1;
     }
 
@@ -244,18 +244,31 @@ int notify_dht(peer* client, server* srv){ //TODO:
     msg->node_port = self->port;
     msg->node_id = self->node_id;
     msg->flags |= PKT_FLAG_NTFY |PKT_FLAG_CTRL;
-    if(forward(client, msg) == -1){
-        fprintf(stderr,"Notify couldn't be send to Port: %d with ID: %d!\n", client->port, client->node_id);
-        return EXIT_FAILURE;
-    }
-    packet_free(msg);
+    int trials = 0;
+    peer* temp = pred;
     pred = client;
+    peer* temp2 = succ;
     if(succ == NULL){
         succ = client;
         srv->succ = succ;
-        printf("New Predecessor & Successor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id);
+    }//Voerst überschreiben, falls jemand danach versucht reinzujoinen/stabilizen
+    while(forward(client, msg) == -1){
+        trials += 1;
+        fprintf(stderr, "!");
+        if(trials == 20){
+        fprintf(stderr,"Notify couldn't be send to Port: %d with ID: %d!\n", client->port, client->node_id);
+        pred = temp;
+        succ = temp2;
+        srv->succ = succ;
+        peer_free(client);
+        return EXIT_FAILURE;
+        }
+    }
+    packet_free(msg);
+    if(succ == pred){
+        fprintf(stderr, "New Predecessor & Successor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id);
     }else{
-        printf("New Predecessor:\n IP: %s, Port: %d, ID: %d\n\nNew Successor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id,
+        fprintf(stderr, "New Predecessor:\n IP: %s, Port: %d, ID: %d\n\nNew Successor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id,
                                                                                                                     succ->hostname, succ->port, succ->node_id);
     }
     return EXIT_SUCCESS;
@@ -307,11 +320,14 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
         }
         clear_requests(rt, p->hash_id);
     } else if(p->flags & PKT_FLAG_NTFY) {
-        got_packet(p);
-        succ = peer_from_packet(p);
-        succ->node_id = p->node_id;
-        srv->succ = succ;
-        printf("New Successor:\n IP: %s, Port: %d, ID: %d\n", succ->hostname, succ->port, succ->node_id);
+        if(succ == NULL || succ->node_id != p->node_id){
+            got_packet(p);
+            succ = peer_from_packet(p);
+            succ->node_id = p->node_id;
+            succ->socket = c->socket;
+            srv->succ = succ;
+            fprintf(stderr,"New Successor:\n IP: %s, Port: %d, ID: %d\n", succ->hostname, succ->port, succ->node_id);
+        }
     }else if(p->flags & PKT_FLAG_JOIN) {
         got_packet(p);
         peer *n = peer_from_packet(p);
@@ -322,28 +338,114 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
         ){
             notify_dht(n, srv);
         }else{
+            printf("Node-ID: %d\n", n->node_id);
             forward(succ, p);
         }
     }else if(p->flags & PKT_FLAG_STAB){
         peer *n = peer_from_packet(p);
         n->node_id = p->node_id;
+        fprintf(stderr, "Is it a Peer? %d", p->hash_id);
         if(pred == NULL){
             got_packet(p);
             pred = n;
-            printf("New Predecessor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id);
+            fprintf(stderr,"New Predecessor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id);
+            packet *change = packet_new();
+            change->node_port = self->port;
+            change->node_id = self->node_id;
+            change->node_ip = peer_get_ip(self);
+            change->flags |= PKT_FLAG_CTRL | PKT_FLAG_NTFY;
+            int timer = 0;
+            if(p->hash_id != 1){
+
+                size_t buffer_len;
+                unsigned char* msg = packet_serialize(change, &buffer_len);
+            while(sendall(c->socket, msg, buffer_len) == -1){
+                timer += 1;
+                if(timer == 20){
+                    fprintf(stderr, "Notify couldn't be send!\n");
+                    free(msg);
+                    packet_free(change);
+                    return EXIT_FAILURE;
+                }
+            }} //?
+            else{
+                while(forward(n, change) == -1){
+                    timer += 1;
+                    fprintf(stderr, "!");
+                    if(timer == 20){
+                        fprintf(stderr,"Notify couldn't be send!\n");
+                        packet_free(change);
+                        return EXIT_FAILURE;}
+                }
+            }
+            /*
+            }*/
+            packet_free(change);
         }else{
             if(!compare_peer(n, pred)){
                 got_packet(p);
-                printf("Got STABILIZE: Comparing: Predecessor: Port: %hu, ID: %hu\n From Packet: Port: %hu, ID:%hu\n", pred->port, pred->node_id, n->port, n->node_id);
+                fprintf(stderr,"Got STABILIZE: Comparing: Predecessor: Port: %hu, ID: %hu\n From Packet: Port: %hu, ID:%hu\n", pred->port, pred->node_id, n->port, n->node_id);
                 //Notify
                 packet *change = packet_new();
                 change->node_port = pred->port;
                 change->node_id = pred->node_id;
                 change->node_ip = peer_get_ip(pred);
                 change->flags |= PKT_FLAG_CTRL | PKT_FLAG_NTFY;
-                if(forward(n, change) == -1){
-                    fprintf(stderr,"Notify couldn't be send!\n");
-                    return EXIT_FAILURE;
+
+                int timer = 0;
+                if(p->hash_id != 1){
+                    size_t buffer_len;
+                    unsigned char* msg = packet_serialize(change, &buffer_len);
+                    while(sendall(c->socket, msg, buffer_len) == -1){
+                        timer += 1;
+                        if(timer == 20){
+                            fprintf(stderr, "Notify couldn't be send!\n");
+                            free(msg);
+                            packet_free(change);
+                            return EXIT_FAILURE;
+                        }
+                    }} //?
+                else{
+                    while(forward(n, change) == -1){
+                        timer += 1;
+                        fprintf(stderr, "!");
+                        if(timer == 20){
+                            fprintf(stderr,"Notify couldn't be send!\n");
+                            packet_free(change);
+                            return EXIT_FAILURE;}
+                    }
+                }
+                packet_free(change);
+            }else{
+                packet *change = packet_new();
+                change->node_port = self->port;
+                change->node_id = self->node_id;
+                change->node_ip = peer_get_ip(self);
+                change->flags |= PKT_FLAG_CTRL | PKT_FLAG_NTFY;
+
+                int timer = 0;
+                if(p->hash_id != 1){
+
+                    size_t buffer_len;
+                    unsigned char* msg = packet_serialize(change, &buffer_len);
+                    while(sendall(c->socket, msg, buffer_len) == -1){
+                        timer += 1;
+                        if(timer == 20){
+                            fprintf(stderr, "Notify couldn't be send!\n");
+                            free(msg);
+                            packet_free(change);
+                            return EXIT_FAILURE;
+                        }
+                    }} //?
+                else{
+                    while(forward(n, change) == -1){
+                        timer += 1;
+                        fprintf(stderr, "!");
+                        if(timer == 20){
+                            fprintf(stderr,"Notify couldn't be send!\n");
+                            packet_free(change);
+                            return EXIT_FAILURE;}
+                    }
                 }
                 packet_free(change);
             }
@@ -403,9 +505,15 @@ int join_dht(peer* node){ //Works
     join_msg->node_id = self->node_id;
     join_msg->flags |= PKT_FLAG_JOIN |PKT_FLAG_CTRL;
     //peer_connect(node);
-    if(forward(node, join_msg) == -1){
-        return EXIT_FAILURE;
+    int trials = 0;
+    while(forward(node, join_msg) == -1){
+        trials += 1;
+        if(trials == 20){
+            fprintf(stderr,"Notify couldn't be send!\n");
+            packet_free(join_msg);
+        return EXIT_FAILURE;}
     }
+    packet_free(join_msg);
     return EXIT_SUCCESS;
 
 }
@@ -459,7 +567,7 @@ int main(int argc, char **argv) {
         }
         free(id);
     }
-    printf("Self:\nHOST: %s, PORT: %s, ID: %d\n", hostSelf, portSelf, idSelf);
+    fprintf(stdout,"Self:\nHOST: %s, PORT: %s, ID: %d\n", hostSelf, portSelf, idSelf);
 
 
 
