@@ -24,6 +24,7 @@ typedef struct finger_table{
     peer * fpeer;
     struct finger_table* next;
 }ftable;
+int fngr_socket = -5;
 
 
 /**
@@ -282,6 +283,21 @@ void got_packet(packet* p){
     fprintf(stderr, "Handling control packet...\n");
     print_packet_hdr(p);
 }
+void send_FACK(){
+    packet* response = packet_new();
+    response->flags |= PKT_FLAG_CTRL | PKT_FLAG_FACK;
+    size_t buf_len;
+    unsigned char* resp = packet_serialize(response, &buf_len);
+    int timer = 0;
+    while(sendall(fngr_socket, resp, buf_len) == -1){
+        timer += 1;
+        if(timer == 20){
+            fprintf(stderr, "FACK couldn't be send!");
+            return;
+        }
+    }
+
+}
 
 /**
  * @brief Handle a control packet from another peer.
@@ -324,9 +340,21 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
             got_packet(p);
             succ = peer_from_packet(p);
             succ->node_id = p->node_id;
-            succ->socket = c->socket;
+            //succ->socket = c->socket;
             srv->succ = succ;
             fprintf(stderr,"New Successor:\n IP: %s, Port: %d, ID: %d\n", succ->hostname, succ->port, succ->node_id);
+            packet* stab = packet_new();
+            stab->node_id = self->node_id;
+            stab->node_ip = peer_get_ip(self);
+            stab->node_port = self->port;
+            stab->flags |= PKT_FLAG_CTRL | PKT_FLAG_STAB;
+            int timer = 0;
+            while(forward(succ, stab) == -1){
+                timer += 1;
+                if(timer == 20){
+                    fprintf(stderr, "Stabilize couldn't be send from NTFY!");
+                }
+            }
         }
     }else if(p->flags & PKT_FLAG_JOIN) {
         got_packet(p);
@@ -453,12 +481,15 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
         }
     }else if(p->flags & PKT_FLAG_FNGR){
         got_packet(p);
-        int potenz = 0;
+        if(fngr_socket == -5){
+            fngr_socket = c->socket;
+        }
+        send_FACK(); //Am ende nach FNGR
 
 
 
     }else if(p->flags & PKT_FLAG_FACK){
-
+        got_packet(p);
     }
         /**
          * TODO:

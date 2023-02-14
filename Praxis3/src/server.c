@@ -190,7 +190,7 @@ void server_run(server *srv) {
             fds[i].fd = c->socket;
             fds[i].events = POLLIN;
         }
-        ready = poll(fds, srv->n_clients + 2, 2000);
+        ready = poll(fds, srv->n_clients + 2, 1999);
 
         if (ready < 0) {
             perror("Poll:");
