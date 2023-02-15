@@ -123,6 +123,8 @@ void print_packet_hdr(packet *p){
                 (p->flags >> PKT_FLAG_STAB_POS) & 1);
         fprintf(stderr, "\tLOOKUP: %d\n", (p->flags >> PKT_FLAG_LKUP_POS) & 1);
         fprintf(stderr, "\tREPLY: %d\n", (p->flags >> PKT_FLAG_RPLY_POS) & 1);
+        fprintf(stderr, "\tFINGER: %d\n", (p->flags >> PKT_FLAG_FNGR_POS) & 1);
+        fprintf(stderr, "\tFACK: %d\n", (p->flags >> PKT_FLAG_FACK_POS) & 1);
     }else{
     fprintf(stderr, "Decoded packet header: \n");
     fprintf(stderr, "\tACK: %d\n", (p->flags >> PKT_FLAG_ACK_POS) & 1);

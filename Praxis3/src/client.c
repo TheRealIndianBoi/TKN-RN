@@ -113,6 +113,25 @@ int connect_socket(char *hostname, char *port) {
  * @param argv The arguments.
  */
 int main(int argc, char **argv) {
+
+    /*
+    char *hostname = "127.0.0.1";
+    char *port = "2000";
+    int s = connect_socket(hostname, port);
+    packet *p = packet_new();
+    p->flags |= PKT_FLAG_CTRL | PKT_FLAG_FNGR;
+    size_t raw_size;
+    unsigned char *raw_pkt = packet_serialize(p, &raw_size);
+    packet_free(p);
+    sendall(s, raw_pkt, raw_size);
+    size_t response_len;
+    unsigned char *response = recvall(s, &response_len);
+    packet *rsp = packet_decode(response, response_len);
+    free(response);
+    if (!(rsp->flags & PKT_FLAG_FACK)){
+            fprintf(stderr, "No FACK!\n");
+            return -1;
+    }*/
     if (argc < 5) {
         fprintf(stderr, "Not enough args!\n");
         return -1;
