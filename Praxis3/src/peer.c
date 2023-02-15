@@ -106,7 +106,22 @@ int lookup_peer(uint16_t hash_id) {
 
     lkp->node_ip = peer_get_ip(self);
 
+    if(potenznr != 16){
     forward(succ, lkp);
+    return 0;}
+    else{
+        ftable* pointer = finger;
+        while(pointer->next != NULL){
+            if(peer_is_responsible(pointer->fpeer->node_id, pointer->next->fpeer->node_id,hash_id)){
+                forward(pointer->fpeer, lkp);
+                return 0;
+            }
+            pointer = pointer->next;
+        }
+        forward(succ, lkp);
+    }
+
+    /*
     ftable* pointer = finger;
     if(pointer->next == NULL){
         packet *lkp = packet_new();
@@ -137,7 +152,7 @@ int lookup_peer(uint16_t hash_id) {
             }
         }
         forward(succ, lkp);
-    }
+    }*/
     return 0;
 }
 
