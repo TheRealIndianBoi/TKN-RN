@@ -12,7 +12,6 @@
 // actual underlying hash table
 htable **ht = NULL;
 rtable **rt = NULL;
-htable  **ft = NULL;
 
 // chord peers
 peer *self = NULL;
@@ -25,8 +24,10 @@ typedef struct finger_table{
     struct finger_table* next;
 }ftable;
 int fngr_socket = -5;
+int potenz = 0;
+ftable* finger;
 
-
+void send_STAB();
 /**
  * @brief Forward a packet to a peer.
  *
@@ -105,6 +106,38 @@ int lookup_peer(uint16_t hash_id) {
     lkp->node_ip = peer_get_ip(self);
 
     forward(succ, lkp);
+    /*
+    ftable* pointer = finger;
+    if(pointer->next == NULL){
+        packet *lkp = packet_new();
+        lkp->flags = PKT_FLAG_CTRL | PKT_FLAG_LKUP;
+        lkp->hash_id = hash_id;
+        lkp->node_id = self->node_id;
+        lkp->node_port = self->port;
+
+        lkp->node_ip = peer_get_ip(self);
+
+        forward(succ, lkp);
+        return 0;
+    }else{
+        ftable * temp;
+        packet *lkp = packet_new();
+        lkp->flags = PKT_FLAG_CTRL | PKT_FLAG_LKUP;
+        lkp->hash_id = hash_id;
+        lkp->node_id = self->node_id;
+        lkp->node_port = self->port;
+        lkp->node_ip = peer_get_ip(self);
+        while(pointer->next != NULL && pointer->next->fpeer != NULL){
+            temp = pointer;
+            pointer = pointer->next;
+            if(peer_is_responsible(temp->fpeer->node_id, pointer->fpeer->node_id, hash_id)){
+                forward(pointer->fpeer, lkp);
+                fprintf(stderr, "Forward Lookup to: Node: %hu",pointer->fpeer->node_id);
+                return 0;
+            }
+        }
+        forward(succ, lkp);
+    }*/
     return 0;
 }
 
@@ -238,7 +271,7 @@ int handle_packet_data(server *srv, client *c, packet *p) {
     }
 }
 
-int notify_dht(peer* client, server* srv){ //TODO:
+int notify_dht(peer* client, server* srv){
 
     packet *msg = packet_new();
     msg->node_ip = peer_get_ip(self);
@@ -255,8 +288,7 @@ int notify_dht(peer* client, server* srv){ //TODO:
     }//Voerst überschreiben, falls jemand danach versucht reinzujoinen/stabilizen
     while(forward(client, msg) == -1){
         trials += 1;
-        fprintf(stderr, "!");
-        if(trials == 20){
+        if(trials == 200){
         fprintf(stderr,"Notify couldn't be send to Port: %d with ID: %d!\n", client->port, client->node_id);
         pred = temp;
         succ = temp2;
@@ -268,6 +300,9 @@ int notify_dht(peer* client, server* srv){ //TODO:
     packet_free(msg);
     if(succ == pred){
         fprintf(stderr, "New Predecessor & Successor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id);
+        //send stab
+        send_STAB();
+
     }else{
         fprintf(stderr, "New Predecessor:\n IP: %s, Port: %d, ID: %d\n\nNew Successor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id,
                                                                                                                     succ->hostname, succ->port, succ->node_id);
@@ -291,14 +326,52 @@ void send_FACK(){
     int timer = 0;
     while(sendall(fngr_socket, resp, buf_len) == -1){
         timer += 1;
-        if(timer == 20){
+        if(timer == 200){
             fprintf(stderr, "FACK couldn't be send!");
             return;
         }
     }
+    fngr_socket = -5;
 
 }
 
+void send_STAB() {
+    packet* stab = packet_new();
+    stab->node_id = self->node_id;
+    stab->node_ip = peer_get_ip(self);
+    stab->node_port = self->port;
+    stab->flags |= PKT_FLAG_CTRL | PKT_FLAG_STAB;
+    int timer = 0;
+    while(forward(succ, stab) == -1){
+        timer += 1;
+        if(timer == 200){
+            fprintf(stderr, "Send Stabilize, not possible!\n");
+        }
+    }
+}
+
+int power(int base, int potenz){
+    if(potenz == 0){
+        return 1;
+    }
+    if(potenz == 1){
+        return base;
+    }
+    int value = base;
+    for (int i = 0; i < potenz; ++i) {
+        value *= base;
+    }
+    return value;
+}
+void free_ftable(ftable* pointer){
+    ftable* temp = pointer->next;
+    while(temp != NULL){
+        fprintf(stderr, "Freeing Finger: %hu", pointer->hash);
+        free(pointer);
+        pointer = temp;
+        temp = temp->next;
+    }
+}
 /**
  * @brief Handle a control packet from another peer.
  * Lookup vs. Proxy Reply
@@ -328,13 +401,46 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
     } else if (p->flags & PKT_FLAG_RPLY) {
         got_packet(p);
         // Look for open requests and proxy them
+        /*if(get_requests(rt, p->hash_id) == NULL){
+            //FNGR
+            ftable* pointer = finger;
+            for (int i = 0; i < potenz; ++i) {
+                pointer = pointer->next;
+            }
+            peer* n = peer_from_packet(p);
+            n->node_id = p->node_id;
+            pointer->fpeer = n;
+            potenz += 1;
+            if(potenz < 16){
+            pointer = pointer->next;
+            pointer->next = calloc(1, sizeof(ftable));
+            int value = (self->node_id + power(2, potenz)) % power(2, 16);
+            pointer->hash = value;
+            packet* look = packet_new();
+            look->node_id = self->node_id;
+            look->node_ip = peer_get_ip(self);
+            look->node_port = self->port;
+            look->hash_id = pointer->hash;
+            look->flags |= PKT_FLAG_LKUP | PKT_FLAG_CTRL;
+            int timer = 0;
+            while(forward(n, look) == -1){
+                timer += 1;
+                if(timer == 20){
+                    fprintf(stderr,"FNGR- LOOKUP via Reply couldn't be sent!");
+                }
+            }
+
+            }else{
+                send_FACK();
+            }
+        }else{*/
         peer *n = peer_from_packet(p);
         for (request *r = get_requests(rt, p->hash_id); r != NULL;
              r = r->next) {
             proxy_request(srv, r->socket, r->packet, n);
             server_close_socket(srv, r->socket);
-        }
-        clear_requests(rt, p->hash_id);
+        //}
+        clear_requests(rt, p->hash_id);}
     } else if(p->flags & PKT_FLAG_NTFY) {
         if(succ == NULL || succ->node_id != p->node_id){
             got_packet(p);
@@ -343,18 +449,7 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
             //succ->socket = c->socket;
             srv->succ = succ;
             fprintf(stderr,"New Successor:\n IP: %s, Port: %d, ID: %d\n", succ->hostname, succ->port, succ->node_id);
-            packet* stab = packet_new();
-            stab->node_id = self->node_id;
-            stab->node_ip = peer_get_ip(self);
-            stab->node_port = self->port;
-            stab->flags |= PKT_FLAG_CTRL | PKT_FLAG_STAB;
-            int timer = 0;
-            while(forward(succ, stab) == -1){
-                timer += 1;
-                if(timer == 20){
-                    fprintf(stderr, "Stabilize couldn't be send from NTFY!");
-                }
-            }
+            send_STAB();
         }
     }else if(p->flags & PKT_FLAG_JOIN) {
         got_packet(p);
@@ -390,7 +485,7 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
             while(sendall(c->socket, msg, buffer_len) == -1){
                 timer += 1;
                 if(timer == 20){
-                    fprintf(stderr, "Notify couldn't be send!\n");
+                    fprintf(stderr, "Notify couldn't be send! [Line: 500]\n");
                     free(msg);
                     packet_free(change);
                     return EXIT_FAILURE;
@@ -399,9 +494,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
             else{
                 while(forward(n, change) == -1){
                     timer += 1;
-                    fprintf(stderr, "!");
-                    if(timer == 20){
-                        fprintf(stderr,"Notify couldn't be send!\n");
+                    if(timer == 200){
+                        fprintf(stderr,"Notify couldn't be send! [Line: 510]\n");
                         packet_free(change);
                         return EXIT_FAILURE;}
                 }
@@ -426,8 +520,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                     unsigned char* msg = packet_serialize(change, &buffer_len);
                     while(sendall(c->socket, msg, buffer_len) == -1){
                         timer += 1;
-                        if(timer == 20){
-                            fprintf(stderr, "Notify couldn't be send!\n");
+                        if(timer == 200){
+                            fprintf(stderr, "Notify couldn't be send![line: 537]\n");
                             free(msg);
                             packet_free(change);
                             return EXIT_FAILURE;
@@ -437,8 +531,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                     while(forward(n, change) == -1){
                         timer += 1;
                         fprintf(stderr, "!");
-                        if(timer == 20){
-                            fprintf(stderr,"Notify couldn't be send!\n");
+                        if(timer == 200){
+                            fprintf(stderr,"Notify couldn't be send! [line: 548]\n");
                             packet_free(change);
                             return EXIT_FAILURE;}
                     }
@@ -458,8 +552,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                     unsigned char* msg = packet_serialize(change, &buffer_len);
                     while(sendall(c->socket, msg, buffer_len) == -1){
                         timer += 1;
-                        if(timer == 20){
-                            fprintf(stderr, "Notify couldn't be send!\n");
+                        if(timer == 200){
+                            fprintf(stderr, "Notify couldn't be send! [line:569]\n");
                             free(msg);
                             packet_free(change);
                             return EXIT_FAILURE;
@@ -468,9 +562,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                 else{
                     while(forward(n, change) == -1){
                         timer += 1;
-                        fprintf(stderr, "!");
-                        if(timer == 20){
-                            fprintf(stderr,"Notify couldn't be send!\n");
+                        if(timer == 200){
+                            fprintf(stderr,"Notify couldn't be send! [line: 580]\n");
                             packet_free(change);
                             return EXIT_FAILURE;}
                     }
@@ -484,12 +577,54 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
         if(fngr_socket == -5){
             fngr_socket = c->socket;
         }
-        send_FACK(); //Am ende nach FNGR
+        send_FACK();
+        /*
+        if(succ == NULL){
+            fprintf(stderr,"Error at FNGR: No Successor!");
+            send_FACK();
+        }
+        if(potenz == 16){
+            potenz = 0;
+        }
+        ftable *pointer = finger;
+        ftable *temp = pointer;
+        for (int i = 0; i < potenz; ++i) {
+            temp = pointer;
+            pointer = pointer->next;
+        }
+        free_ftable(pointer);
+        pointer->next = calloc(1, sizeof(ftable));
+        uint16_t value  = (self->node_id + power(2, potenz)) % power(2, 16);
+        pointer->hash = value;
+        if(potenz == 0){
+            pointer->fpeer = succ;
+            potenz += 1;
+            value = (self->node_id + power(2, potenz)) % power(2, 16);
+            pointer = pointer->next;
+            pointer->hash = value;
+            pointer->next = calloc(1, sizeof(ftable));
+        }
+        packet* look = packet_new();
+        look->node_id = self->node_id;
+        look->node_ip = peer_get_ip(self);
+        look->node_port = self->port;
+        look->hash_id = pointer->hash;
+        look->flags |= PKT_FLAG_LKUP | PKT_FLAG_CTRL;
+        int timer = 0;
+        while(forward(temp->fpeer, look) == -1){
+            timer += 1;
+            if(timer == 20){
+                fprintf(stderr,"FNGR- LOOKUP couldn't be sent!");
+            }
+        }*/
+
+
 
 
 
     }else if(p->flags & PKT_FLAG_FACK){
         got_packet(p);
+        fprintf(stderr,"Why did i get a FACK-Packet?");
     }
         /**
          * TODO:
@@ -539,7 +674,7 @@ int join_dht(peer* node){ //Works
     int trials = 0;
     while(forward(node, join_msg) == -1){
         trials += 1;
-        if(trials == 20){
+        if(trials == 500){
             fprintf(stderr,"Notify couldn't be send!\n");
             packet_free(join_msg);
         return EXIT_FAILURE;}
@@ -653,10 +788,12 @@ int main(int argc, char **argv) {
     ht = (htable **)malloc(sizeof(htable *));
     // Initiale request table
     rt = (rtable **)malloc(sizeof(rtable *));
-    ft = (htable **)malloc(sizeof(htable * ));
+    finger = calloc(1, sizeof(ftable));
+    finger->fpeer = NULL;
+    finger->hash = 0;
+    finger->next = NULL;
     *ht = NULL;
     *rt = NULL;
-    *ft = NULL;
     srv->succ = succ;
     srv->self = self;
     srv->packet_cb = handle_packet;
