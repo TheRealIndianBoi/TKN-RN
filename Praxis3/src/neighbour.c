@@ -87,7 +87,7 @@ int peer_connect(peer *p) {
 
         int status = connect(p->socket, res->ai_addr, res->ai_addrlen);
         if (status < 0) {
-            //perror("connect");
+            perror("connect");
             continue;
         }
         memcpy(res->ai_addr, &(p->addr), res->ai_addrlen);

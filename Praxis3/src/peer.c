@@ -96,6 +96,9 @@ int proxy_request(server *srv, int csocket, packet *p, peer *n) {
  */
 int lookup_peer(uint16_t hash_id) {
     // We could see whether we need to repeat the lookup
+    if(succ == NULL){
+        return -1;
+    }
 
     // build a new packet for the lookup
     packet *lkp = packet_new();
@@ -103,10 +106,11 @@ int lookup_peer(uint16_t hash_id) {
     lkp->hash_id = hash_id;
     lkp->node_id = self->node_id;
     lkp->node_port = self->port;
-
     lkp->node_ip = peer_get_ip(self);
 
+    //send package
     if(potenznr != 16){
+        //if no finger_table is set
     forward(succ, lkp);
     return 0;}
     else{
@@ -118,41 +122,9 @@ int lookup_peer(uint16_t hash_id) {
             }
             pointer = pointer->next;
         }
+        //no matched entry in finger_table
         forward(succ, lkp);
     }
-
-    /*
-    ftable* pointer = finger;
-    if(pointer->next == NULL){
-        packet *lkp = packet_new();
-        lkp->flags = PKT_FLAG_CTRL | PKT_FLAG_LKUP;
-        lkp->hash_id = hash_id;
-        lkp->node_id = self->node_id;
-        lkp->node_port = self->port;
-
-        lkp->node_ip = peer_get_ip(self);
-
-        forward(succ, lkp);
-        return 0;
-    }else{
-        ftable * temp;
-        packet *lkp = packet_new();
-        lkp->flags = PKT_FLAG_CTRL | PKT_FLAG_LKUP;
-        lkp->hash_id = hash_id;
-        lkp->node_id = self->node_id;
-        lkp->node_port = self->port;
-        lkp->node_ip = peer_get_ip(self);
-        while(pointer->next != NULL && pointer->next->fpeer != NULL){
-            temp = pointer;
-            pointer = pointer->next;
-            if(peer_is_responsible(temp->fpeer->node_id, pointer->fpeer->node_id, hash_id)){
-                forward(pointer->fpeer, lkp);
-                fprintf(stderr, "Forward Lookup to: Node: %hu",pointer->fpeer->node_id);
-                return 0;
-            }
-        }
-        forward(succ, lkp);
-    }*/
     return 0;
 }
 
@@ -300,11 +272,12 @@ int notify_dht(peer* client, server* srv){
     if(succ == NULL){
         succ = client;
         srv->succ = succ;
-    }//Voerst überschreiben, falls jemand danach versucht reinzujoinen/stabilizen
+    }
     while(forward(client, msg) == -1){
         trials += 1;
         if(trials == 200){
-        fprintf(stderr,"Notify couldn't be send to Port: %d with ID: %d!\n", client->port, client->node_id);
+        fprintf(stderr,"Notify couldn't be send to Port: %d with ID: %d!\n",
+                                                            client->port, client->node_id);
         pred = temp;
         succ = temp2;
         srv->succ = succ;
@@ -314,13 +287,12 @@ int notify_dht(peer* client, server* srv){
     }
     packet_free(msg);
     if(succ == pred){
-        fprintf(stderr, "New Predecessor & Successor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id);
-        //send stab
+        fprintf(stderr, "New Predecessor & Successor:\n IP: %s, Port: %d, ID: %d\n",
+                                                                pred->hostname, pred->port, pred->node_id);
         send_STAB();
-
     }else{
-        fprintf(stderr, "New Predecessor:\n IP: %s, Port: %d, ID: %d\n\nNew Successor:\n IP: %s, Port: %d, ID: %d\n", pred->hostname, pred->port, pred->node_id,
-                                                                                                                    succ->hostname, succ->port, succ->node_id);
+        fprintf(stderr, "New Predecessor:\n IP: %s, Port: %d, ID: %d\n\nNew Successor:\n IP: %s, Port: %d, ID: %d\n",
+                                                    pred->hostname, pred->port, pred->node_id,succ->hostname, succ->port, succ->node_id);
     }
     return EXIT_SUCCESS;
 }
@@ -521,16 +493,16 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                 //TODO:
                 size_t buffer_len;
                 unsigned char* msg = packet_serialize(change, &buffer_len);
-            while(sendall(c->socket, msg, buffer_len) == -1){
-                timer += 1;
-                if(timer == 200){
-                    fprintf(stderr, "Notify couldn't be send! [Line: 500]\n");
-                    free(msg);
-                    packet_free(change);
-                    return CB_REMOVE_CLIENT;
+                while(sendall(c->socket, msg, buffer_len) == -1){
+                    timer += 1;
+                    if(timer == 200){
+                        fprintf(stderr, "Notify couldn't be send! [Line: 500]\n");
+                        free(msg);
+                        packet_free(change);
+                        return CB_REMOVE_CLIENT;
+                    }
                 }
-            }} //?
-            else{
+            }else{
                 while(forward(n, change) == -1){
                     timer += 1;
                     if(timer == 200){
@@ -539,8 +511,6 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                         return CB_REMOVE_CLIENT;}
                 }
             }
-            /*
-            }*/
             packet_free(change);
         }else{
             if(!compare_peer(n, pred)){
@@ -565,8 +535,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                             packet_free(change);
                             return CB_REMOVE_CLIENT;
                         }
-                    }} //?
-                else{
+                    }
+                }else{
                     while(forward(n, change) == -1){
                         timer += 1;
                         fprintf(stderr, "!");
@@ -597,8 +567,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                             packet_free(change);
                             return CB_REMOVE_CLIENT;
                         }
-                    }} //?
-                else{
+                    }
+                }else{
                     while(forward(n, change) == -1){
                         timer += 1;
                         if(timer == 200){
@@ -734,22 +704,12 @@ int join_dht(peer* node){ //Works
  */
 int main(int argc, char **argv) {
 
-    /*if (argc < 10) {
-        fprintf(stderr, "Not enough args! I need ID IP PORT ID_P IP_P PORT_P " "ID_S IP_S PORT_S\n");
-    }*/
 
     if(argc < 3 || argc > 6) {
         fprintf(stderr,
                 "Amount of Arguments invalid! It should be ./peer IP PORT [ID] [Peer-IP Peer-PORT]. [ID] is not necessary.\n");
         return EXIT_FAILURE;
     }
-
-    // Read arguments for self
-    /*uint16_t idSelf = strtoul(argv[1], NULL, 10);
-    char *hostSelf = argv[2];
-    char *portSelf = argv[3];*/
-
-    // Read arguments for self
 
     uint16_t idSelf = 0;
     char *hostSelf = argv[1];
@@ -771,24 +731,11 @@ int main(int argc, char **argv) {
     fprintf(stdout,"Self:\nHOST: %s, PORT: %s, ID: %d\n", hostSelf, portSelf, idSelf);
 
 
-
-    /*// Read arguments for predecessor
-    uint16_t idPred = strtoul(argv[4], NULL, 10);
-    char *hostPred = argv[5];
-    char *portPred = argv[6];
-
-    // Read arguments for successor
-    uint16_t idSucc = strtoul(argv[7], NULL, 10);
-    char *hostSucc = argv[8];
-    char *portSucc = argv[9];
-    */
-
     // Initialize all chord peers
     self = peer_init(idSelf, hostSelf,portSelf); //  Not really necessary but convenient to store us as a peer
-    //pred = peer_init(idPred, hostPred, portPred);
-    //succ = peer_init(idSucc, hostSucc, portSucc);
     pred = NULL;
     succ = NULL;
+
     //Set Peer to a DHT if given
     if(argc == 5 || argc == 6){
         char * peer_ip = calloc(strlen(argv[argc - 2]), sizeof(char));
@@ -799,7 +746,6 @@ int main(int argc, char **argv) {
             fprintf(stderr, "Invalid Arguments! It should be ./peer IP PORT [ID] [Peer-IP Peer-PORT]. [ID] and [Peer-IP Peer-PORT] are not necessary.\n");
             return EXIT_FAILURE;
         }
-        //Fehler
 
         peer *dht_node = peer_init(0, peer_ip, peer_port);
         printf("Peer:\nIP: %s, Port: %hu\n",dht_node->hostname, dht_node->port);
@@ -832,6 +778,6 @@ int main(int argc, char **argv) {
     srv->succ = succ;
     srv->self = self;
     srv->packet_cb = handle_packet;
-    server_run(srv); //added succ
+    server_run(srv);
     close(srv->socket);
 }
