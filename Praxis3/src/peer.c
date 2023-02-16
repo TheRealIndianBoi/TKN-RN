@@ -300,11 +300,13 @@ int notify_dht(peer* client, server* srv){
 int compare_peer(peer* c1, peer* c2){
     return c1->node_id == c2->node_id && c1->port == c2->port && peer_get_ip(c1) == peer_get_ip(c2);
 }
+
 void got_packet(packet* p){
 
     fprintf(stderr, "Handling control packet...\n");
     print_packet_hdr(p);
 }
+
 void send_FACK(server* srv){
     packet* response = packet_new();
     response->flags |= PKT_FLAG_CTRL | PKT_FLAG_FACK;
@@ -358,6 +360,7 @@ int power(int base, int potenz){
     }
     return value;
 }
+
 void free_ftable(ftable* pointer){
     ftable* temp = pointer->next;
     fprintf(stderr, "Freeing Finger: %hu\n", pointer->hash);
@@ -378,6 +381,7 @@ void free_ftable(ftable* pointer){
     }
 
 }
+
 /**
  * @brief Handle a control packet from another peer.
  * Lookup vs. Proxy Reply
@@ -389,7 +393,6 @@ void free_ftable(ftable* pointer){
  */
 int handle_packet_ctrl(server *srv, client *c, packet *p) {
 
-
     if (p->flags & PKT_FLAG_LKUP) {
         got_packet(p);
         // we received a lookup request
@@ -397,14 +400,16 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
             // Our business
             fprintf(stderr, "Lol! This should not happen!\n");
             return answer_lookup(p, self);
-        } else if (peer_is_responsible(self->node_id, succ->node_id,
-                                       p->hash_id)) {
+        }
+        else if (peer_is_responsible(self->node_id, succ->node_id,p->hash_id)) {
             return answer_lookup(p, succ);
-        } else {
+        }
+        else {
             // Great! Somebody else's job!
             forward(succ, p);
         }
-    } else if (p->flags & PKT_FLAG_RPLY) {
+    }
+    else if (p->flags & PKT_FLAG_RPLY) {
         got_packet(p);
         peer *n = peer_from_packet(p);
         if(get_requests(rt, p->hash_id) != NULL){
@@ -413,7 +418,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                 server_close_socket(srv, r->socket);
                 clear_requests(rt, p->hash_id);
             }
-        }else{
+        }
+        else{
             ftable* pointer = finger;
             printf("Index: %d\n", potenznr);
             for (int i = 0; i < potenznr; ++i) {
@@ -439,7 +445,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                         break;
                     }
                 }
-            }if(potenznr == 16){
+            }
+            if(potenznr == 16){
                 /** PRINT FINGER-TABLE **/
                 potenznr = 0;
                 ftable* print = finger;
@@ -453,8 +460,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
             }
 
         }
-
-    } else if(p->flags & PKT_FLAG_NTFY) {
+    }
+    else if(p->flags & PKT_FLAG_NTFY) {
         if(succ == NULL || succ->node_id != p->node_id){
             got_packet(p);
             succ = peer_from_packet(p);
@@ -463,7 +470,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
             fprintf(stderr,"New Successor:\n IP: %s, Port: %d, ID: %d\n", succ->hostname, succ->port, succ->node_id);
             send_STAB();
         }
-    }else if(p->flags & PKT_FLAG_JOIN) {
+    }
+    else if(p->flags & PKT_FLAG_JOIN) {
         got_packet(p);
         peer *n = peer_from_packet(p);
         n->node_id = p->node_id;
@@ -472,11 +480,13 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
         ||  (n->node_id > self->node_id && (self->node_id < pred->node_id && pred->node_id < n->node_id))
         ){
             notify_dht(n, srv);
-        }else{
+        }
+        else{
             printf("Node-ID: %d\n", n->node_id);
             forward(succ, p);
         }
-    }else if(p->flags & PKT_FLAG_STAB){
+    }
+    else if(p->flags & PKT_FLAG_STAB){
         peer *n = peer_from_packet(p);
         n->node_id = p->node_id;
         if(pred == NULL){
@@ -502,7 +512,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                         return CB_REMOVE_CLIENT;
                     }
                 }
-            }else{
+            }
+            else{
                 while(forward(n, change) == -1){
                     timer += 1;
                     if(timer == 200){
@@ -512,7 +523,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                 }
             }
             packet_free(change);
-        }else{
+        }
+        else{
             if(!compare_peer(n, pred)){
                 got_packet(p);
                 fprintf(stderr,"Got STABILIZE: Comparing: Predecessor: Port: %hu, ID: %hu\n From Packet: Port: %hu, ID:%hu\n", pred->port, pred->node_id, n->port, n->node_id);
@@ -536,7 +548,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                             return CB_REMOVE_CLIENT;
                         }
                     }
-                }else{
+                }
+                else{
                     while(forward(n, change) == -1){
                         timer += 1;
                         fprintf(stderr, "!");
@@ -547,7 +560,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                     }
                 }
                 packet_free(change);
-            }else{
+            }
+            else{
                 packet *change = packet_new();
                 change->node_port = self->port;
                 change->node_id = self->node_id;
@@ -568,7 +582,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
                             return CB_REMOVE_CLIENT;
                         }
                     }
-                }else{
+                }
+                else{
                     while(forward(n, change) == -1){
                         timer += 1;
                         if(timer == 200){
@@ -581,7 +596,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
             }
             peer_free(n);
         }
-    }else if(p->flags & PKT_FLAG_FNGR){
+    }
+    else if(p->flags & PKT_FLAG_FNGR){
         got_packet(p);
         if(FNGR_Client != NULL){
             fprintf(stderr, "Got a FNGR-Package, before previous FNGR has been accomplished!\n");
@@ -627,7 +643,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
         return CB_OK;
 
 
-    }else if(p->flags & PKT_FLAG_FACK){
+    }
+    else if(p->flags & PKT_FLAG_FACK){
         got_packet(p);
         fprintf(stderr,"Why did i get a FACK-Packet?");
     }
@@ -654,7 +671,8 @@ int handle_packet_ctrl(server *srv, client *c, packet *p) {
 int handle_packet(server *srv, client *c, packet *p) {
     if (p->flags & PKT_FLAG_CTRL) {
         return handle_packet_ctrl(srv, c, p);
-    } else {
+    }
+    else {
         return handle_packet_data(srv, c, p);
     }
 }
